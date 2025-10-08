@@ -1,0 +1,244 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Device {
+  id String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  user User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  userAgent String
+  ip String
+  lastActive DateTime @updatedAt
+  createdAt DateTime @default(now())
+  isActive Boolean @default(true)
+  refreshTokens RefreshToken[]
+}
+
+model User {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  fullName    String
+  email       String     @unique
+  password    String
+  phoneNumber String?
+  avatar      String?
+  status      UserStatus @default(INACTIVE)
+  totpSecret  String?     // For Two-Factor Authentication
+
+  roleId String @db.ObjectId
+  role   Role   @relation(fields: [roleId], references: [id])
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations to other models
+  coursesAsInstructor Course[]             @relation("InstructorCourses")
+  enrollments         Enrollment[]
+  quizAttempts        StudentQuizAttempt[]
+  devices Device[]
+  refreshTokens RefreshToken[]
+
+  // Auditing relations
+  createdCourses Course[] @relation("CreatedCourses")
+  updatedCourses Course[] @relation("UpdatedCourses")
+}
+
+model Role {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  name        String  @unique // e.g., "Student", "Instructor", "Admin"
+  description String?
+  isActive    Boolean @default(true)
+
+  users         User[]
+  permissions   Permission[] @relation(fields: [permissionIds], references: [id])
+  permissionIds String[]     @db.ObjectId
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Permission {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  name        String // e.g., "create-course", "delete-user"
+  description String?
+  path        String // e.g., "/courses"
+  method      HTTPMethod // e.g., "POST"
+
+  roles   Role[]   @relation(fields: [roleIds], references: [id])
+  roleIds String[] @db.ObjectId
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model VerificationCode {
+  id        String               @id @default(auto()) @map("_id") @db.ObjectId
+  email     String
+  code      String
+  type      VerificationCodeType
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+
+  @@unique([email, type])
+  @@index([expiresAt])
+}
+
+model RefreshToken {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  token     String   @unique
+  userId    String   @db.ObjectId
+  user User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  deviceId String   @db.ObjectId
+  device   Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+
+model Course {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String?
+  thumbnail   String?
+  category    String?
+  isPublished Boolean @default(false)
+
+  // Relations
+  instructorId String @db.ObjectId
+  instructor   User   @relation("InstructorCourses", fields: [instructorId], references: [id])
+
+  chapters    Chapter[]
+  enrollments Enrollment[]
+  quizzes     Quiz[]
+
+  // Auditing
+  createdById String? @db.ObjectId
+  createdBy   User?   @relation("CreatedCourses", fields: [createdById], references: [id])
+  updatedById String? @db.ObjectId
+  updatedBy   User?   @relation("UpdatedCourses", fields: [updatedById], references: [id])
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Chapter {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  title    String
+  position Int
+
+  courseId String @db.ObjectId
+  course   Course @relation(fields: [courseId], references: [id])
+
+  lessons Lesson[]
+  quizzes Quiz[]
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Lesson {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  position    Int
+  videoUrl    String?
+  documentUrl String?
+  transcript  String?
+
+  chapterId String  @db.ObjectId
+  chapter   Chapter @relation(fields: [chapterId], references: [id])
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Enrollment {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  studentId String @db.ObjectId
+  student   User   @relation(fields: [studentId], references: [id])
+
+  courseId String @db.ObjectId
+  course   Course @relation(fields: [courseId], references: [id])
+
+  enrolledAt DateTime @default(now())
+
+  // progress can be calculated dynamically or stored here
+
+  @@unique([studentId, courseId])
+}
+
+model Quiz {
+  id    String @id @default(auto()) @map("_id") @db.ObjectId
+  title String
+
+  courseId String @db.ObjectId
+  course   Course @relation(fields: [courseId], references: [id])
+
+  chapterId String?  @db.ObjectId
+  chapter   Chapter? @relation(fields: [chapterId], references: [id])
+
+  questions Question[]
+  attempts  StudentQuizAttempt[]
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Question {
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  text               String
+  options            String[]
+  correctAnswerIndex Int
+
+  quizId String @db.ObjectId
+  quiz   Quiz   @relation(fields: [quizId], references: [id])
+}
+
+model StudentQuizAttempt {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  score       Int
+  studentId   String   @db.ObjectId
+  student     User     @relation(fields: [studentId], references: [id])
+  quizId      String   @db.ObjectId
+  quiz        Quiz     @relation(fields: [quizId], references: [id])
+  submittedAt DateTime @default(now())
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum VerificationCodeType {
+  REGISTER
+  FORGOT_PASSWORD
+  LOGIN
+  DISABLE_2FA
+}
+
+enum HTTPMethod {
+  GET
+  POST
+  PUT
+  DELETE
+  PATCH
+  OPTIONS
+  HEAD
+}
