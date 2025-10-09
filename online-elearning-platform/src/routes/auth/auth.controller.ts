@@ -13,6 +13,7 @@ import {
   RegisterResDTO,
   SendOTPBodyDTO,
   TwoFactorSetupResDTO,
+  UserProfileResDTO,
 } from './auth.dto'
 import { ZodSerializerDto } from 'nestjs-zod'
 import { UserAgent } from 'src/shared/decorators/user-agent.decorator'
@@ -54,6 +55,14 @@ export class AuthController {
       ...body,
       userAgent,
       ip,
+    })
+  }
+
+  @Get('/me')
+  @ZodSerializerDto(UserProfileResDTO)
+  me(@ActiveUser('userId') userId: string) {
+    return this.authService.me({
+      id: userId,
     })
   }
 

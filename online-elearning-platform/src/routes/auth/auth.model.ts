@@ -173,6 +173,13 @@ export const TwoFactorSetupResSchema = z.object({
   uri: z.string(),
 })
 
+export const UserProfileResSchema = UserSchema.omit({
+  password: true,
+  totpSecret: true,
+}).extend({
+  role: RoleSchema,
+})
+
 export type RegisterBodyType = z.infer<typeof RegisterBodySchema>
 export type RegisterResType = z.infer<typeof RegisterResSchema>
 export type VerificationCodeType = z.infer<typeof VerificationCodeSchema>
@@ -190,3 +197,4 @@ export type GetAuthorizationUrlResType = z.infer<typeof GetAuthorizationUrlResSc
 export type ForgotPasswordBodyType = z.infer<typeof ForgotPasswordBodySchema>
 export type DisableTwoFactorBodyType = z.infer<typeof DisableTwoFactorBodySchema>
 export type TwoFactorSetupResType = z.infer<typeof TwoFactorSetupResSchema>
+export type UserProfileResType = z.infer<typeof UserProfileResSchema>

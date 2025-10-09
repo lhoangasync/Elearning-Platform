@@ -12,6 +12,7 @@ import {
   RegisterResSchema,
   SendOTPBodySchema,
   TwoFactorSetupResSchema,
+  UserProfileResSchema,
 } from './auth.model'
 
 export class RegisterBodyDTO extends createZodDto(RegisterBodySchema) {}
@@ -37,3 +38,5 @@ export class ForgotPasswordBodyDTO extends createZodDto(ForgotPasswordBodySchema
 export class TwoFactorSetupResDTO extends createZodDto(TwoFactorSetupResSchema) {}
 
 export class DisableTwoFactorBodyDTO extends createZodDto(DisableTwoFactorBodySchema) {}
+
+export class UserProfileResDTO extends createZodDto(UserProfileResSchema) {}

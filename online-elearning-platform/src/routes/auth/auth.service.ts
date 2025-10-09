@@ -63,10 +63,13 @@ export class AuthService {
     const verificationCode = await this.authRepository.findUniqueVerficationCode({
       email_type: {
         email,
-        code,
         type,
       },
     })
+
+    if (verificationCode?.code !== code) {
+      throw InvalidOTPException
+    }
 
     if (!verificationCode) {
       throw InvalidOTPException
@@ -188,7 +191,6 @@ export class AuthService {
         this.authRepository.deleteVerificationCode({
           email_type: {
             email: body.email,
-            code: body.code,
             type: TypeOfVerificationCode.REGISTER,
           },
         }),
@@ -280,6 +282,17 @@ export class AuthService {
     }
   }
 
+  async me({ id }: { id: string }) {
+    const user = await this.authRepository.findUniqueUserIncludeRole({
+      id,
+    })
+
+    if (!user) {
+      throw EmailNotFoundException
+    }
+    return user
+  }
+
   async logout(refreshToken: string) {
     try {
       // kiem tra refresh token co hop le khong
@@ -330,7 +343,6 @@ export class AuthService {
       this.authRepository.deleteVerificationCode({
         email_type: {
           email: body.email,
-          code: body.code,
           type: TypeOfVerificationCode.FORGOT_PASSWORD,
         },
       }),
@@ -391,6 +403,16 @@ export class AuthService {
     }
     // xoa totp secret khoi user
     await this.authRepository.updateUser({ id: userId }, { totpSecret: null })
+
+    // xoa code otp khoi db neu co
+    if (code) {
+      await this.authRepository.deleteVerificationCode({
+        email_type: {
+          email: user.email,
+          type: TypeOfVerificationCode.DISABLE_2FA,
+        },
+      })
+    }
     return { message: 'Disable two factor authentication successfully!' }
   }
 }

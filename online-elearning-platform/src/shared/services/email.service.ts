@@ -12,7 +12,7 @@ export class EmailService {
   async sendOTP(payload: { email: string; code: string }) {
     return await this.resend.emails.send({
       from: 'TDTU <onboarding@resend.dev>',
-      to: [payload.email], // vatcvietmy123456@gmail.com
+      to: 'vatcvietmy123456@gmail.com', // [payload.email]
       subject: 'OTP Code',
       html: `<strong>${payload.code}</strong>`,
     })
