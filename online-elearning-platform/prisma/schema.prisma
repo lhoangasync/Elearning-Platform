@@ -98,11 +98,11 @@ model Permission {
   roleIds String[] @db.ObjectId
 
   createdById String? @db.ObjectId
-  createdBy   User?   @relation("CreatedPermissions", fields: [createdById], references: [id])
+  createdBy   User?   @relation("CreatedPermissions", fields: [createdById], references: [id], onDelete: SetNull, onUpdate: NoAction)
   updatedById String? @db.ObjectId
-  updatedBy   User?   @relation("UpdatedPermissions", fields: [updatedById], references: [id])
+  updatedBy   User?   @relation("UpdatedPermissions", fields: [updatedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
   deletedById String? @db.ObjectId
-  deletedBy   User?   @relation("DeletedPermissions", fields: [deletedById], references: [id])
+  deletedBy   User?   @relation("DeletedPermissions", fields: [deletedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   deletedAt DateTime?
   createdAt DateTime  @default(now())
