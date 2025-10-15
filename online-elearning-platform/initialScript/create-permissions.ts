@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from 'src/app.module'
-import { HTTPMethod } from 'src/shared/constants/role.constants'
+import { HTTPMethod, RoleName } from 'src/shared/constants/role.constants'
 import { PrismaService } from 'src/shared/services/prisma.service'
 
 const prisma = new PrismaService()
@@ -100,6 +100,25 @@ async function bootstrap() {
     console.log('No permissions to add')
   }
 
+  // lay lai permissions trong db sau khi them moi (hoac xoa)
+  const updatedPermissionsInDb = await prisma.permission.findMany({
+    where: {
+      deletedAt: null,
+    },
+  })
+
+  // cap nhat lai cac permission trong admin role hoac teacher role
+  await prisma.role.update({
+    where: {
+      name: RoleName.Admin,
+      deletedAt: null,
+    },
+    data: {
+      permissions: {
+        set: updatedPermissionsInDb.map((item) => ({ id: item.id })),
+      },
+    },
+  })
   process.exit(0)
 }
 bootstrap()
