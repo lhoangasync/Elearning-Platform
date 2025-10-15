@@ -1,4 +1,4 @@
-import { UnprocessableEntityException } from '@nestjs/common'
+import { ForbiddenException, UnprocessableEntityException } from '@nestjs/common'
 
 export const RoleNotFoundException = new UnprocessableEntityException([
   {
@@ -13,3 +13,5 @@ export const RoleAlreadyExistException = new UnprocessableEntityException([
     path: 'name',
   },
 ])
+
+export const ProhibitedActionsOnBaseRoleException = new ForbiddenException('Cannot change or delete this role!')

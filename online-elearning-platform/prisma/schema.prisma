@@ -93,6 +93,7 @@ model Permission {
   description String     @default("")
   path        String
   method      HTTPMethod
+  module     String      @default("")
 
   roles   Role[]   @relation(fields: [roleIds], references: [id])
   roleIds String[] @db.ObjectId

@@ -16,19 +16,23 @@ async function bootstrap() {
     },
   })
 
-  const availableRoutes: { path: string; method: keyof typeof HTTPMethod; name: string }[] = router.stack
-    .map((layer) => {
-      if (layer.route) {
-        const path = layer.route?.path
-        const method = String(layer.route?.stack[0].method).toUpperCase() as keyof typeof HTTPMethod
-        return {
-          path,
-          method,
-          name: method + ' ' + path,
+  const availableRoutes: { path: string; method: keyof typeof HTTPMethod; name: string; module: string }[] =
+    router.stack
+      .map((layer) => {
+        if (layer.route) {
+          const path = layer.route?.path
+          const method = String(layer.route?.stack[0].method).toUpperCase() as keyof typeof HTTPMethod
+          const moduleName = String(path.split('/')[1]).toUpperCase()
+          console.log('>>moduleName', moduleName)
+          return {
+            path,
+            method,
+            name: method + ' ' + path,
+            module: moduleName,
+          }
         }
-      }
-    })
-    .filter((item) => item !== undefined)
+      })
+      .filter((item) => item !== undefined)
   // Tao object permissionInDbMap với key là [method-path]
   const permissionInDbMap: Record<string, typeof permissionInDb> = permissionInDb.reduce((acc, item) => {
     acc[`${item.method}-${item.path}`] = item
@@ -86,6 +90,7 @@ async function bootstrap() {
           path: route.path,
           method: route.method,
           name: route.name,
+          module: route.module,
           deletedAt: null,
         },
       })

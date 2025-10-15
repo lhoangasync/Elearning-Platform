@@ -1,9 +1,10 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { RoleRepository } from './role.repository'
 import { CreateRoleBodyType, GetRolesQueryType, UpdateRoleBodyType } from './role.model'
-import { RoleAlreadyExistException, RoleNotFoundException } from './role.error'
+import { ProhibitedActionsOnBaseRoleException, RoleAlreadyExistException, RoleNotFoundException } from './role.error'
 import { isNotFoundPrismaError, isUniqueConstraintPrismaError } from 'src/shared/helper'
 import { NotFoundRecordException } from 'src/shared/error'
+import { RoleName } from 'src/shared/constants/role.constants'
 
 @Injectable()
 export class RoleService {
@@ -37,12 +38,18 @@ export class RoleService {
 
   async update({ id, data, updatedById }: { id: string; data: UpdateRoleBodyType; updatedById: string }) {
     try {
-      const role = await this.roleRepository.update({
+      const role = await this.roleRepository.findById(id)
+      if (!role) throw NotFoundRecordException
+
+      // khong cho phep ai cap nhat role admin
+      if (role.name === RoleName.Admin) throw ProhibitedActionsOnBaseRoleException
+
+      const updatedRole = await this.roleRepository.update({
         data,
         id,
         updatedById,
       })
-      return role
+      return updatedRole
     } catch (error) {
       if (isNotFoundPrismaError(error)) throw NotFoundRecordException
 
@@ -56,6 +63,13 @@ export class RoleService {
 
   async delete({ id, deletedById }: { id: string; deletedById: string }) {
     try {
+      const role = await this.roleRepository.findById(id)
+      if (!role) throw NotFoundRecordException
+
+      // khong cho phep xoa 3 role co ban nay
+      if ([RoleName.Admin, RoleName.Instructor, RoleName.Student].includes(role.name))
+        throw ProhibitedActionsOnBaseRoleException
+
       await this.roleRepository.delete({
         id,
         deletedById,
