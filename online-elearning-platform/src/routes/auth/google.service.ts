@@ -7,8 +7,7 @@ import { AuthRepository } from './auth.repository'
 import { HashingService } from 'src/shared/services/hashing.service'
 import { AuthService } from './auth.service'
 import { SharedRoleRepository } from 'src/shared/repositories/shared-role-repo'
-const uuidv4 = async () => (await import('uuid')).v4
-
+import { v4 as uuidv4 } from 'uuid'
 @Injectable()
 export class GoogleService {
   private oauth2Client: OAuth2Client
@@ -80,7 +79,7 @@ export class GoogleService {
       // Neu chua co user thi tao moi
       if (!user) {
         const clientRoleId = await this.sharedRoleRepository.getClientRoleId()
-        const randomPassword = (await uuidv4())()
+        const randomPassword = uuidv4()
         const hashedPassword = await this.hashingService.hash(randomPassword)
         user = await this.authRepository.createUserIncludeRole({
           email: data.email,

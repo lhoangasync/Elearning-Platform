@@ -1,10 +1,4 @@
-import {
-  ConflictException,
-  HttpException,
-  Injectable,
-  UnauthorizedException,
-  UnprocessableEntityException,
-} from '@nestjs/common'
+import { HttpException, Injectable, UnauthorizedException, UnprocessableEntityException } from '@nestjs/common'
 import { generateOTP, isNotFoundPrismaError, isUniqueConstraintPrismaError } from 'src/shared/helper'
 import { HashingService } from 'src/shared/services/hashing.service'
 import { TokenService } from 'src/shared/services/token.service'
