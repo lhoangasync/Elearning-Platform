@@ -11,6 +11,7 @@ import { APP_GUARD } from '@nestjs/core'
 import { AuthenticationGuard } from './guards/authentication.guard'
 import { TwoFactorAuthService } from './services/2fa.service'
 import { SharedRoleRepository } from './repositories/shared-role-repo'
+import { S3Service } from './services/s3.service'
 
 const sharedService = [
   PrismaService,
@@ -20,6 +21,7 @@ const sharedService = [
   TwoFactorAuthService,
   SharedUserRepository,
   SharedRoleRepository,
+  S3Service,
 ]
 
 @Global()

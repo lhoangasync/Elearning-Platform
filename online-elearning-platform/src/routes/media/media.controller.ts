@@ -1,35 +1,57 @@
 import {
   Controller,
-  FileTypeValidator,
+  Get,
   MaxFileSizeValidator,
+  NotFoundException,
+  Param,
   ParseFilePipe,
   Post,
-  UploadedFile,
+  Res,
+  UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common'
-import { FileInterceptor } from '@nestjs/platform-express'
+import { FilesInterceptor } from '@nestjs/platform-express'
+import { type Response } from 'express'
+import path from 'path'
+import envConfig from 'src/shared/config'
+import { UPLOAD_DIR } from 'src/shared/constants/other.constant'
+import { IsPublic } from 'src/shared/decorators/auth.decorator'
+import { S3Service } from 'src/shared/services/s3.service'
+import { MediaService } from './media.service'
 
 @Controller('media')
 export class MediaController {
+  constructor(private mediaService: MediaService) {}
   @Post('images/upload')
   @UseInterceptors(
-    FileInterceptor('file', {
+    FilesInterceptor('files', 100, {
       limits: {
-        fileSize: 1 * 1024 * 1024, // 1MB
+        fileSize: 5 * 1024 * 1024, // 5MB
       },
     }),
   )
   uploadFile(
-    @UploadedFile(
+    @UploadedFiles(
       new ParseFilePipe({
         validators: [
-          new MaxFileSizeValidator({ maxSize: 1024 * 1024 }), // 1MB
-          new FileTypeValidator({ fileType: /(jpg|jpeg|png|web)$/ }),
+          // new FileTypeValidator({ fileType: /image\/(jpeg|png|webp)/ }),
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5MB
         ],
       }),
     )
-    file: Express.Multer.File,
+    files: Array<Express.Multer.File>,
   ) {
-    console.log(file)
+    return this.mediaService.uploadFile(files)
+  }
+
+  @Get('static/:filename')
+  @IsPublic()
+  serverFile(@Param('filename') filename: string, @Res() res: Response) {
+    return res.sendFile(path.resolve(UPLOAD_DIR, filename), (error) => {
+      if (error) {
+        const notfound = new NotFoundException('File not found')
+        res.status(notfound.getStatus()).json(notfound.getResponse())
+      }
+    })
   }
 }
