@@ -12,6 +12,7 @@ import {
   IconHelp,
   IconSearch,
   IconSettings,
+  IconUserCircle,
   IconUsers,
 } from "@tabler/icons-react";
 
@@ -109,9 +110,9 @@ const data = {
   ],
   navSecondary: [
     {
-      title: "Settings",
-      url: "#",
-      icon: IconSettings,
+      title: "Profile",
+      url: "/dashboard/profile",
+      icon: IconUserCircle,
     },
     {
       title: "Get Help",

@@ -20,6 +20,7 @@ interface AuthContextType {
   fetchUserAfterLogin: () => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  mutate: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(
@@ -108,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchUserAfterLogin,
     logout,
     isLoading,
+    mutate: fetchUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

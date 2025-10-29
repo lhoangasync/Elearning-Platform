@@ -6,4 +6,6 @@ export const API_ENDPOINT = {
   FORGOT_PASSWORD: "/auth/forgot-password",
   SEND_OTP: "/auth/otp",
   PROFILE: "/profile",
+  UPLOAD: "/media/images/upload/presigned-url",
+  UPDATE_PROFILE: "/profile",
 } as const;
