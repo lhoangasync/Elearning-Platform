@@ -1,4 +1,5 @@
 "use client";
+import { API_ENDPOINT } from "@/constants/endpoint";
 import { ILoginReqBody, TUserProfileRes } from "@/types/backend";
 import api from "@/utils/api";
 import { clearTokens, getRefreshToken, setTokens } from "@/utils/token.service";
@@ -34,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Interceptor trong api.ts sẽ tự động đính kèm accessToken
       // và refresh nó nếu cần
-      const { data } = await api.get("/profile");
+      const { data } = await api.get(API_ENDPOINT.PROFILE);
       setUser(data);
     } catch (error) {
       console.error("Failed to fetch user. Token might be invalid.", error);
@@ -56,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Hàm xử lý đăng nhập
   const login = async (credentials: ILoginReqBody) => {
-    const response = await api.post("/auth/login", credentials);
+    const response = await api.post(API_ENDPOINT.LOGIN, credentials);
     const { accessToken, refreshToken } = response.data;
 
     // Lưu token bằng service đã tạo
@@ -72,9 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithGoogle = async () => {
     try {
-      const res = await api.get("/auth/google-link");
+      const res = await api.get(API_ENDPOINT.LOGIN_WITH_GOOGLE);
 
-      console.log(">>>>res google", res);
       window.location.href = res.data.url;
     } catch (error) {
       console.log(error);
@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       if (refreshToken) {
-        await api.post("/auth/logout", { refreshToken });
+        await api.post(API_ENDPOINT.LOGOUT, { refreshToken });
       }
     } catch (error) {
       console.error(

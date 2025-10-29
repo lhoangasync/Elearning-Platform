@@ -30,6 +30,7 @@ import {
 import { DialogFooter } from "@/components/ui/dialog";
 import { Lock, Mail, Phone, User } from "lucide-react";
 import Logo from "@/components/shared/Logo";
+import { API_ENDPOINT } from "@/constants/endpoint";
 
 const registerFormSchema = z
   .object({
@@ -88,7 +89,7 @@ export default function RegisterPage() {
   async function onSubmitStep1(values: RegisterFormValues) {
     setIsSubmitting(true);
     try {
-      await api.post("/auth/otp", {
+      await api.post(API_ENDPOINT.SEND_OTP, {
         email: values.email,
         type: "REGISTER",
       });
@@ -118,7 +119,7 @@ export default function RegisterPage() {
         ...formData,
         code: values.code,
       };
-      await api.post("/auth/register", finalData);
+      await api.post(API_ENDPOINT.REGISTER, finalData);
       toast.success("Registration successful!", {
         description: "You can now log in with your new account.",
         position: "top-center",

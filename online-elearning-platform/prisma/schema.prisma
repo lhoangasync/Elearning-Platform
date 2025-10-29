@@ -28,7 +28,7 @@ model Device {
 model User {
   id          String     @id @default(auto()) @map("_id") @db.ObjectId
   fullName    String
-  email       String     
+  email       String
   password    String
   phoneNumber String?
   avatar      String?
@@ -56,6 +56,7 @@ model User {
   // Auditing relations
   createdCourses Course[] @relation("CreatedCourses")
   updatedCourses Course[] @relation("UpdatedCourses")
+  deletedCourses Course[] @relation("DeletedCourses")
 
   createdPermissions Permission[] @relation("CreatedPermissions")
   updatedPermissions Permission[] @relation("UpdatedPermissions")
@@ -63,8 +64,7 @@ model User {
 
   createdRole Role[] @relation("RoleCreatedBy")
   updatedRole Role[] @relation("RoleUpdatedBy")
-
-  Role Role[] @relation("RoleDeletedBy")
+  deletedRole Role[] @relation("RoleDeletedBy")
 
   @@index([email, deletedAt])
 
@@ -172,6 +172,8 @@ model Course {
   createdBy   User?   @relation("CreatedCourses", fields: [createdById], references: [id])
   updatedById String? @db.ObjectId
   updatedBy   User?   @relation("UpdatedCourses", fields: [updatedById], references: [id])
+  deletedById String? @db.ObjectId
+  deletedBy   User?   @relation("DeletedCourses", fields: [createdById], references: [id])
 
   deletedAt DateTime?
   createdAt DateTime  @default(now())

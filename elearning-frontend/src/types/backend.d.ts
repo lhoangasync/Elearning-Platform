@@ -9,6 +9,17 @@ export interface IUser {
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
+  createdById: string | null;
+  updatedById: string | null;
+  deletedById: string | null;
+}
+
+export interface IPermission {
+  id: string;
+  name: string;
+  module: string;
+  path: string;
+  method: string;
 }
 
 export interface IRole {
@@ -16,13 +27,15 @@ export interface IRole {
   name: string;
   description: string | null;
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
+  // createdAt: string;
+  // updatedAt: string;
+  // deletedAt: string | null;
+  permissions: IPermission[];
 }
 
-export type TUserProfileRes = IUser & IRole;
-
+export interface TUserProfileRes extends IUser {
+  role: IRole;
+}
 export interface ILoginReqBody {
   email: string;
   password: string;
