@@ -78,6 +78,7 @@ import { useDebounce } from "use-debounce";
 import { AddRoleModal } from "./AddRoleModal";
 import { DeleteRoleDialog } from "./DeleteRoleModal";
 import { ViewRoleModal } from "./ViewRoleModal";
+import { EditRoleModal } from "./EditRoleModal";
 
 export default function RolesTable() {
   const id = useId();
@@ -103,6 +104,7 @@ export default function RolesTable() {
   const [selectedRoleDetail, setSelectedRoleDetail] =
     useState<RoleDetails | null>(null);
   const [isLoadingRole, setIsLoadingRole] = useState(false);
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
 
   const columns: ColumnDef<Roles>[] = [
     {
@@ -218,7 +220,13 @@ export default function RolesTable() {
                 <IconEye />
                 View details
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-yellow-600">
+              <DropdownMenuItem
+                className="text-yellow-600"
+                onClick={() => {
+                  setSelectedRoleId(role.id);
+                  setIsEditModalOpen(true);
+                }}
+              >
                 <IconEdit />
                 Edit
               </DropdownMenuItem>
@@ -493,6 +501,16 @@ export default function RolesTable() {
         }}
         onSuccess={handleSuccess}
         role={selectedRole}
+      />
+
+      <EditRoleModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedRoleId(null);
+        }}
+        onSuccess={handleSuccess}
+        roleId={selectedRoleId}
       />
     </>
   );
