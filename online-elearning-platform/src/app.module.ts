@@ -15,6 +15,7 @@ import { MediaModule } from './routes/media/media.module'
 import { CourseModule } from './routes/course/course.module'
 import { ChapterModule } from './routes/chapter/chapter.module'
 import { LessonModule } from './routes/lesson/lesson.module'
+import { EnrollmentModule } from './routes/enrollment/enrollment.module'
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { LessonModule } from './routes/lesson/lesson.module'
     CourseModule,
     ChapterModule,
     LessonModule,
+    EnrollmentModule,
   ],
   controllers: [AppController],
   providers: [
