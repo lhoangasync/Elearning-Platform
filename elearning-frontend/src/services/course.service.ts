@@ -53,7 +53,13 @@ export const getAllCourses = async (
   limit: number
 ): Promise<PaginatedResponse<ICourseRes>> => {
   const response = await api.get<PaginatedResponse<ICourseRes>>(
-    API_ENDPOINT.COURSES
+    API_ENDPOINT.COURSES,
+    {
+      params: {
+        page,
+        limit,
+      },
+    }
   );
   return response.data;
 };
