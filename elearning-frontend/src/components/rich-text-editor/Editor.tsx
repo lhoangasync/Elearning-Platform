@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Menubar } from "./Menubar";
@@ -24,11 +24,19 @@ export function RichTextEditor({ field }: { field: any }) {
     },
 
     onUpdate: ({ editor }) => {
-      field.onChange(JSON.stringify(editor.getJSON()));
+      field.onChange(editor.getHTML());
     },
 
-    content: field.value ? JSON.parse(field.value) : "<p>Text something!</p>",
+    content: field.value || "<p>Text something!</p>",
   });
+
+  // Sync field value với editor content khi field value thay đổi từ bên ngoài
+  useEffect(() => {
+    if (editor && field.value !== editor.getHTML()) {
+      editor.commands.setContent(field.value || "<p>Text something!</p>");
+    }
+  }, [field.value, editor]);
+
   return (
     <div className="w-full border border-input rounded-lg overflow-hidden dark:bg-input/30">
       <Menubar editor={editor} />

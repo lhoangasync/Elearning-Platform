@@ -50,6 +50,7 @@ export const CreateCourseBodySchema = CourseSchema.pick({
   title: true,
   description: true,
   thumbnail: true,
+  duration: true,
   level: true,
   category: true,
   smallDescription: true,

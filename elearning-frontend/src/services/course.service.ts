@@ -32,11 +32,34 @@ export interface IInstructor {
   avatar?: string;
 }
 
+export interface ILesson {
+  id: string;
+  title: string;
+  position: number;
+  videoUrl: string | null;
+  documentUrl: string | null;
+}
+
+export interface IChapter {
+  id: string;
+  title: string;
+  position: number;
+  lessons: ILesson[];
+}
+
 export interface ICourseRes extends ICourse {
   instructor: IInstructor;
   _count: {
     enrollments: number;
     chapters: number;
+  };
+}
+
+export interface ICourseDetailRes extends ICourse {
+  instructor?: IInstructor | null;
+  chapters?: IChapter[] | null;
+  _count?: {
+    enrollments: number;
   };
 }
 
@@ -46,6 +69,55 @@ export interface PaginatedResponse<T> {
   page: number;
   limit: number;
   totalPages: number;
+}
+
+// Update Course DTO
+export interface UpdateCourseDto {
+  title?: string;
+  description?: string;
+  thumbnail?: string;
+  duration?: number;
+  level?: CourseLevel;
+  status?: CourseStatus;
+  slug?: string;
+  category?: string;
+  smallDescription?: string;
+  requirements?: string[];
+  whatYouWillLearn?: string[];
+}
+
+// Chapter DTOs
+export interface CreateChapterDto {
+  title: string;
+  courseId: string;
+}
+
+export interface UpdateChapterDto {
+  title?: string;
+  position?: number;
+}
+
+export interface ReorderChaptersDto {
+  courseId: string;
+  chapters: { id: string; position: number }[];
+}
+
+// Lesson DTOs
+export interface CreateLessonDto {
+  title: string;
+  chapterId: string;
+}
+
+export interface UpdateLessonDto {
+  title?: string;
+  position?: number;
+  videoUrl?: string;
+  documentUrl?: string;
+}
+
+export interface ReorderLessonsDto {
+  chapterId: string;
+  lessons: { id: string; position: number }[];
 }
 
 export const getAllCourses = async (
@@ -62,4 +134,81 @@ export const getAllCourses = async (
     }
   );
   return response.data;
+};
+
+export const getCourseById = async (
+  courseId: string
+): Promise<ICourseDetailRes> => {
+  const response = await api.get<ICourseDetailRes>(
+    `${API_ENDPOINT.COURSES}/${courseId}`
+  );
+  return response.data;
+};
+
+// Course Update
+export const updateCourse = async (
+  courseId: string,
+  data: UpdateCourseDto
+): Promise<ICourse> => {
+  const response = await api.put<ICourse>(
+    `${API_ENDPOINT.COURSES}/${courseId}`,
+    data
+  );
+  return response.data;
+};
+
+// ============= CHAPTER APIs =============
+export const createChapter = async (
+  data: CreateChapterDto
+): Promise<IChapter> => {
+  const response = await api.post<IChapter>(`${API_ENDPOINT.CHAPTERS}`, data);
+  return response.data;
+};
+
+export const updateChapter = async (
+  chapterId: string,
+  data: UpdateChapterDto
+): Promise<IChapter> => {
+  const response = await api.put<IChapter>(
+    `${API_ENDPOINT.CHAPTERS}/${chapterId}`,
+    data
+  );
+  return response.data;
+};
+
+export const deleteChapter = async (chapterId: string): Promise<void> => {
+  await api.delete(`${API_ENDPOINT.CHAPTERS}/${chapterId}`);
+};
+
+export const reorderChapters = async (
+  data: ReorderChaptersDto
+): Promise<void> => {
+  await api.put(`${API_ENDPOINT.CHAPTERS}/reorder`, data);
+};
+
+// ============= LESSON APIs =============
+export const createLesson = async (data: CreateLessonDto): Promise<ILesson> => {
+  const response = await api.post<ILesson>(`${API_ENDPOINT.LESSONS}`, data);
+  return response.data;
+};
+
+export const updateLesson = async (
+  lessonId: string,
+  data: UpdateLessonDto
+): Promise<ILesson> => {
+  const response = await api.put<ILesson>(
+    `${API_ENDPOINT.LESSONS}/${lessonId}`,
+    data
+  );
+  return response.data;
+};
+
+export const deleteLesson = async (lessonId: string): Promise<void> => {
+  await api.delete(`${API_ENDPOINT.LESSONS}/${lessonId}`);
+};
+
+export const reorderLessons = async (
+  data: ReorderLessonsDto
+): Promise<void> => {
+  await api.put(`${API_ENDPOINT.LESSONS}/reorder`, data);
 };

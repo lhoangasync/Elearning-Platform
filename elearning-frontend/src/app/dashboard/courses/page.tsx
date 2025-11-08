@@ -421,7 +421,7 @@ function CoursesPage() {
 
                   {/* Description */}
                   <p className="text-xs text-muted-foreground line-clamp-2 mb-3 min-h-[2rem]">
-                    {course.description ||
+                    {course.smallDescription ||
                       "This is a great place to provide quick context about your course."}
                   </p>
 
