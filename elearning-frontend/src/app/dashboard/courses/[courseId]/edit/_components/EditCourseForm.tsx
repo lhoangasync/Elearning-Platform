@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import slugify from "slugify";
-import { SparkleIcon, SaveIcon } from "lucide-react";
+import { PlusIcon, SparkleIcon, SaveIcon, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { RichTextEditor } from "@/components/rich-text-editor/Editor";
 import { Uploader } from "@/components/file-uploader/Uploader";
@@ -31,6 +31,7 @@ import { useEffect, useState } from "react";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { Card, CardContent } from "@/components/ui/card";
 
 const courseLevels = ["Beginner", "Intermediate", "Advanced"] as const;
 const courseStatus = ["Draft", "Published", "Archived"] as const;
@@ -57,6 +58,10 @@ export default function EditCourseForm({
 }) {
   const [isReady, setIsReady] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [requirements, setRequirements] = useState<string[]>([]);
+  const [whatYouWillLearn, setWhatYouWillLearn] = useState<string[]>([]);
+  const [newRequirement, setNewRequirement] = useState("");
+  const [newLearning, setNewLearning] = useState("");
   const router = useRouter();
 
   const form = useForm<z.infer<typeof courseSchema>>({
@@ -65,8 +70,8 @@ export default function EditCourseForm({
       title: "",
       description: "",
       thumbnail: "",
-      duration: 0,
       level: "Beginner",
+      duration: 0,
       status: "Draft",
       slug: "",
       category: "IT & Software",
@@ -99,6 +104,8 @@ export default function EditCourseForm({
           : "IT & Software",
         smallDescription: course.smallDescription ?? "",
       });
+      setRequirements(course.requirements || []);
+      setWhatYouWillLearn(course.whatYouWillLearn || []);
       setIsReady(true);
     }
   }, [course, form]);
@@ -111,16 +118,36 @@ export default function EditCourseForm({
     );
   }
 
+  const addRequirement = () => {
+    if (newRequirement.trim()) {
+      setRequirements([...requirements, newRequirement.trim()]);
+      setNewRequirement("");
+    }
+  };
+
+  const removeRequirement = (index: number) => {
+    setRequirements(requirements.filter((_, i) => i !== index));
+  };
+
+  const addLearning = () => {
+    if (newLearning.trim()) {
+      setWhatYouWillLearn([...whatYouWillLearn, newLearning.trim()]);
+      setNewLearning("");
+    }
+  };
+
+  const removeLearning = (index: number) => {
+    setWhatYouWillLearn(whatYouWillLearn.filter((_, i) => i !== index));
+  };
+
   async function onSubmit(values: z.infer<typeof courseSchema>) {
     try {
       setIsSubmitting(true);
 
-      // Map form values to API format
       const updateData = {
         title: values.title,
         description: values.description,
         thumbnail: values.thumbnail,
-        duration: values.duration,
         level: values.level.toUpperCase() as
           | "BEGINNER"
           | "INTERMEDIATE"
@@ -132,10 +159,12 @@ export default function EditCourseForm({
         slug: values.slug,
         category: values.category,
         smallDescription: values.smallDescription,
+        requirements: requirements,
+        whatYouWillLearn: whatYouWillLearn,
       };
 
-      //   console.log("Updating course with data:", updateData);
-      //   console.log("Course ID:", course.id);
+      console.log("Updating course with data:", updateData);
+      console.log("Course ID:", course.id);
 
       await updateCourse(course.id, updateData);
 
@@ -243,6 +272,98 @@ export default function EditCourseForm({
             </FormItem>
           )}
         />
+
+        {/* Requirements Section */}
+        <div className="space-y-3">
+          <FormLabel>Requirements</FormLabel>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-3">
+                {requirements.map((req, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-2 p-3 bg-muted rounded-lg"
+                  >
+                    <span className="flex-1 text-sm">{req}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => removeRequirement(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Add a requirement..."
+                    value={newRequirement}
+                    onChange={(e) => setNewRequirement(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addRequirement();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addRequirement}
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* What You'll Learn Section */}
+        <div className="space-y-3">
+          <FormLabel>What You Will Learn</FormLabel>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-3">
+                {whatYouWillLearn.map((item, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-2 p-3 bg-muted rounded-lg"
+                  >
+                    <span className="flex-1 text-sm">{item}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => removeLearning(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Add a learning outcome..."
+                    value={newLearning}
+                    onChange={(e) => setNewLearning(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addLearning();
+                      }
+                    }}
+                  />
+                  <Button type="button" variant="outline" onClick={addLearning}>
+                    <PlusIcon className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField

@@ -359,9 +359,7 @@ function CoursesPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
-                          onClick={() =>
-                            router.push(`/dashboard/courses/${course.id}`)
-                          }
+                          onClick={() => router.push(`/course/${course.id}`)}
                         >
                           <Eye className="mr-2 h-4 w-4" />
                           View Details

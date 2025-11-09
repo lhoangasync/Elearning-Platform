@@ -25,6 +25,8 @@ import {
   GripVertical,
   Plus,
   Trash2,
+  Save,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,11 +43,9 @@ import { cn } from "@/lib/utils";
 import {
   ICourseDetailRes,
   createChapter,
-  updateChapter,
   deleteChapter as deleteChapterAPI,
   reorderChapters,
   createLesson,
-  updateLesson,
   deleteLesson as deleteLessonAPI,
   reorderLessons,
 } from "@/services/course.service";
@@ -62,6 +62,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Lesson {
   id: string;
@@ -275,6 +276,8 @@ export default function CourseStructure({
   course: ICourseDetailRes;
 }) {
   const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [originalChapters, setOriginalChapters] = useState<Chapter[]>([]);
+  const [hasChanges, setHasChanges] = useState(false);
   const [isChapterDialogOpen, setIsChapterDialogOpen] = useState(false);
   const [isLessonDialogOpen, setIsLessonDialogOpen] = useState(false);
   const [newChapterName, setNewChapterName] = useState("");
@@ -283,6 +286,7 @@ export default function CourseStructure({
     null
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{
     open: boolean;
     type: "chapter" | "lesson";
@@ -294,9 +298,19 @@ export default function CourseStructure({
 
   useEffect(() => {
     if (course) {
-      setChapters(mapCourseStructure(course));
+      const mappedChapters = mapCourseStructure(course);
+      setChapters(mappedChapters);
+      setOriginalChapters(JSON.parse(JSON.stringify(mappedChapters)));
+      setHasChanges(false);
     }
   }, [course]);
+
+  // Check if there are any changes
+  useEffect(() => {
+    const hasOrderChanges =
+      JSON.stringify(chapters) !== JSON.stringify(originalChapters);
+    setHasChanges(hasOrderChanges);
+  }, [chapters, originalChapters]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -305,7 +319,7 @@ export default function CourseStructure({
     })
   );
 
-  const handleDragEnd = async (event: DragEndEvent) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
@@ -320,21 +334,6 @@ export default function CourseStructure({
       );
 
       setChapters(newChapters);
-
-      try {
-        await reorderChapters({
-          courseId: course.id,
-          chapters: newChapters.map((ch) => ({
-            id: ch.id,
-            position: ch.order,
-          })),
-        });
-        toast.success("Chapters reordered successfully");
-      } catch (error: any) {
-        console.error("Error reordering chapters:", error);
-        toast.error("Failed to reorder chapters");
-        setChapters(mapCourseStructure(course));
-      }
     }
   };
 
@@ -356,7 +355,13 @@ export default function CourseStructure({
     try {
       setIsLoading(true);
       await deleteChapterAPI(deleteDialog.id);
-      setChapters((prev) => prev.filter((ch) => ch.id !== deleteDialog.id));
+
+      const updatedChapters = chapters.filter(
+        (ch) => ch.id !== deleteDialog.id
+      );
+      setChapters(updatedChapters);
+      setOriginalChapters(JSON.parse(JSON.stringify(updatedChapters)));
+
       toast.success("Chapter deleted successfully");
       router.refresh();
     } catch (error: any) {
@@ -381,8 +386,8 @@ export default function CourseStructure({
         courseId: course.id,
       });
 
-      setChapters((prev) => [
-        ...prev,
+      const updatedChapters = [
+        ...chapters,
         {
           id: newChapter.id,
           title: newChapter.title,
@@ -390,7 +395,10 @@ export default function CourseStructure({
           lessons: [],
           isExpanded: true,
         },
-      ]);
+      ];
+
+      setChapters(updatedChapters);
+      setOriginalChapters(JSON.parse(JSON.stringify(updatedChapters)));
 
       toast.success("Chapter created successfully");
       setNewChapterName("");
@@ -425,23 +433,24 @@ export default function CourseStructure({
         chapterId: selectedChapterId,
       });
 
-      setChapters((prev) =>
-        prev.map((ch) =>
-          ch.id === selectedChapterId
-            ? {
-                ...ch,
-                lessons: [
-                  ...ch.lessons,
-                  {
-                    id: newLesson.id,
-                    title: newLesson.title,
-                    order: newLesson.position,
-                  },
-                ],
-              }
-            : ch
-        )
+      const updatedChapters = chapters.map((ch) =>
+        ch.id === selectedChapterId
+          ? {
+              ...ch,
+              lessons: [
+                ...ch.lessons,
+                {
+                  id: newLesson.id,
+                  title: newLesson.title,
+                  order: newLesson.position,
+                },
+              ],
+            }
+          : ch
       );
+
+      setChapters(updatedChapters);
+      setOriginalChapters(JSON.parse(JSON.stringify(updatedChapters)));
 
       toast.success("Lesson created successfully");
       setNewLessonName("");
@@ -465,16 +474,17 @@ export default function CourseStructure({
       setIsLoading(true);
       await deleteLessonAPI(deleteDialog.id);
 
-      setChapters((prev) =>
-        prev.map((ch) =>
-          ch.id === deleteDialog.chapterId
-            ? {
-                ...ch,
-                lessons: ch.lessons.filter((l) => l.id !== deleteDialog.id),
-              }
-            : ch
-        )
+      const updatedChapters = chapters.map((ch) =>
+        ch.id === deleteDialog.chapterId
+          ? {
+              ...ch,
+              lessons: ch.lessons.filter((l) => l.id !== deleteDialog.id),
+            }
+          : ch
       );
+
+      setChapters(updatedChapters);
+      setOriginalChapters(JSON.parse(JSON.stringify(updatedChapters)));
 
       toast.success("Lesson deleted successfully");
       router.refresh();
@@ -487,7 +497,7 @@ export default function CourseStructure({
     }
   };
 
-  const updateLessons = async (chapterId: string, lessons: Lesson[]) => {
+  const updateLessons = (chapterId: string, lessons: Lesson[]) => {
     const updatedLessons = lessons.map((l, idx) => ({
       ...l,
       order: idx + 1,
@@ -498,25 +508,118 @@ export default function CourseStructure({
         ch.id === chapterId ? { ...ch, lessons: updatedLessons } : ch
       )
     );
+  };
 
+  const handleSaveChanges = async () => {
     try {
-      await reorderLessons({
-        chapterId,
-        lessons: updatedLessons.map((l) => ({
-          id: l.id,
-          position: l.order,
-        })),
+      setIsSaving(true);
+
+      // Collect all reorder operations
+      const chapterReorderPromises = [];
+      const lessonReorderPromises: any = [];
+
+      // Check chapter order changes
+      const chapterOrderChanged = chapters.some((ch, idx) => {
+        const original = originalChapters.find((o) => o.id === ch.id);
+        return original && original.order !== ch.order;
       });
-      toast.success("Lessons reordered successfully");
+
+      if (chapterOrderChanged) {
+        chapterReorderPromises.push(
+          reorderChapters({
+            courseId: course.id,
+            chapters: chapters.map((ch) => ({
+              id: ch.id,
+              position: ch.order,
+            })),
+          })
+        );
+      }
+
+      // Check lesson order changes for each chapter
+      chapters.forEach((ch) => {
+        const original = originalChapters.find((o) => o.id === ch.id);
+        if (original) {
+          const lessonOrderChanged = ch.lessons.some((lesson, idx) => {
+            const originalLesson = original.lessons.find(
+              (l) => l.id === lesson.id
+            );
+            return originalLesson && originalLesson.order !== lesson.order;
+          });
+
+          if (lessonOrderChanged) {
+            lessonReorderPromises.push(
+              reorderLessons({
+                chapterId: ch.id,
+                lessons: ch.lessons.map((l) => ({
+                  id: l.id,
+                  position: l.order,
+                })),
+              })
+            );
+          }
+        }
+      });
+
+      // Execute all reorder operations
+      await Promise.all([...chapterReorderPromises, ...lessonReorderPromises]);
+
+      // Update original state
+      setOriginalChapters(JSON.parse(JSON.stringify(chapters)));
+      setHasChanges(false);
+
+      toast.success("Changes saved successfully!");
+      router.refresh();
     } catch (error: any) {
-      console.error("Error reordering lessons:", error);
-      toast.error("Failed to reorder lessons");
-      setChapters(mapCourseStructure(course));
+      console.error("Error saving changes:", error);
+      toast.error("Failed to save changes");
+    } finally {
+      setIsSaving(false);
     }
+  };
+
+  const handleDiscardChanges = () => {
+    setChapters(JSON.parse(JSON.stringify(originalChapters)));
+    setHasChanges(false);
+    toast.info("Changes discarded");
   };
 
   return (
     <div className="space-y-6">
+      {hasChanges && (
+        <Alert className="border-orange-500 bg-orange-50 dark:bg-orange-950/20">
+          <AlertDescription className="flex items-center justify-between">
+            <span className="text-sm">
+              You have unsaved changes to the course structure
+            </span>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDiscardChanges}
+                disabled={isSaving}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Discard
+              </Button>
+              <Button size="sm" onClick={handleSaveChanges} disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <LoadingSpinner />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-medium">Chapters</h3>
