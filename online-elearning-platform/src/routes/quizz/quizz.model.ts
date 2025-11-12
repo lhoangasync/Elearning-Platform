@@ -1,4 +1,5 @@
 import z from 'zod'
+import { CourseSchema } from '../course/course.model'
 
 // Quiz Schema
 export const QuizSchema = z.object({
@@ -148,6 +149,14 @@ export const GetQuizzesResSchema = z.object({
           attempts: z.number(),
         })
         .optional(),
+      course: CourseSchema.pick({ id: true, title: true }).extend({
+        chapters: z.array(
+          z.object({
+            id: z.string(),
+            title: z.string(),
+          }),
+        ),
+      }),
     }),
   ),
 })

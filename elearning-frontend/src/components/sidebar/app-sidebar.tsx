@@ -5,6 +5,7 @@ import {
   IconBooks,
   IconCamera,
   IconDashboard,
+  IconDatabase,
   IconFileAi,
   IconFileDescription,
   IconHelp,
@@ -51,6 +52,11 @@ const data = {
       title: "Roles & Permissions",
       url: "/dashboard/roles",
       icon: IconShieldCog,
+    },
+    {
+      title: "Quizzes",
+      url: "/dashboard/quizzes",
+      icon: IconDatabase,
     },
     // {
     //   title: "Projects",

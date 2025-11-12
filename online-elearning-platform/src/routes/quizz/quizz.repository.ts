@@ -41,6 +41,13 @@ export class QuizRepository {
             attempts: true,
           },
         },
+        course: {
+          select: {
+            id: true,
+            title: true,
+            chapters: true,
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',
