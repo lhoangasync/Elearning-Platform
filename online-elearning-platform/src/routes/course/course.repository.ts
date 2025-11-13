@@ -15,7 +15,7 @@ export class CourseRepository {
   constructor(private prismaService: PrismaService) {}
 
   async list(query: GetCoursesQueryType): Promise<GetCoursesResType> {
-    const { page, limit, level, status, category, search } = query
+    const { page, limit, level, status, search } = query
     const skip = (page - 1) * limit
     const take = limit
 
@@ -32,8 +32,66 @@ export class CourseRepository {
       where.status = status
     }
 
-    if (category) {
-      where.category = category
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ]
+    }
+
+    const [totalItems, data] = await Promise.all([
+      this.prismaService.course.count({ where }),
+      this.prismaService.course.findMany({
+        where,
+        skip,
+        take,
+        include: {
+          instructor: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              avatar: true,
+            },
+          },
+          _count: {
+            select: {
+              enrollments: true,
+              chapters: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+    ])
+    return {
+      data,
+      totalItems,
+      totalPages: Math.ceil(totalItems / limit),
+      page,
+      limit,
+    }
+  }
+
+  async listByInstructor(query: GetCoursesQueryType, instructorId: string): Promise<GetCoursesResType> {
+    const { page, limit, level, status, search } = query
+    const skip = (page - 1) * limit
+    const take = limit
+
+    // Build where clause
+    const where: Prisma.CourseWhereInput = {
+      deletedAt: null,
+      instructorId,
+    }
+
+    if (level) {
+      where.level = level
+    }
+
+    if (status) {
+      where.status = status
     }
 
     if (search) {

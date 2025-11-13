@@ -28,6 +28,22 @@ export class CourseController {
     return this.courseService.list(query)
   }
 
+  @Get('manage')
+  @ZodSerializerDto(GetCoursesResDTO)
+  listByRole(
+    @Query() query: GetCoursesQueryDTO,
+    @ActiveUser('userId') userId: string,
+    @ActiveRolePermissions('name') roleName: string,
+  ) {
+    return this.courseService.listByRole(
+      {
+        ...query,
+      },
+      userId,
+      roleName,
+    )
+  }
+
   @Get('slug/:slug')
   @IsPublic()
   @ZodSerializerDto(GetCourseDetailResDTO)

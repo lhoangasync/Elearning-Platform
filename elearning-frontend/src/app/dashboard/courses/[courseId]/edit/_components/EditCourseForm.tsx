@@ -32,6 +32,7 @@ import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
+import { getErrorMessage } from "@/utils/error-message";
 
 const courseLevels = ["Beginner", "Intermediate", "Advanced"] as const;
 const courseStatus = ["Draft", "Published", "Archived"] as const;
@@ -171,9 +172,8 @@ export default function EditCourseForm({
       toast.success("Course updated successfully!");
       router.refresh();
     } catch (error: any) {
-      console.error("Error updating course:", error);
-      console.error("Error response:", error?.response?.data);
-      toast.error(error?.response?.data?.message || "Failed to update course");
+      const errroMessage = getErrorMessage(error);
+      toast.error(`Failed to update course. ${errroMessage}`);
     } finally {
       setIsSubmitting(false);
     }

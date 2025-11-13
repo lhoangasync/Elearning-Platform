@@ -9,6 +9,7 @@ import {
   GetQuizDetailResDTO,
   GetQuizForStudentResDTO,
   GetQuizParamsDTO,
+  GetQuizzesForAdminQueryDTO,
   GetQuizzesQueryDTO,
   GetQuizzesResDTO,
   StartQuizBodyDTO,
@@ -21,15 +22,39 @@ import {
 import { ActiveUser } from 'src/shared/decorators/active-user.decorator'
 import { ActiveRolePermissions } from 'src/shared/decorators/active-role-permissions.decorator'
 import { MessageResDTO } from 'src/shared/dtos/response.dto'
+import { IsPublic } from 'src/shared/decorators/auth.decorator'
+import { RoleName } from 'src/shared/constants/role.constants'
+import { GetQuizzesForAdminQuerySchema, GetQuizzesQuerySchema } from './quizz.model'
 
 @Controller('quizzes')
 export class QuizController {
   constructor(private readonly quizService: QuizService) {}
 
   @Get()
+  @IsPublic()
   @ZodSerializerDto(GetQuizzesResDTO)
   list(@Query() query: GetQuizzesQueryDTO) {
     return this.quizService.list(query)
+  }
+
+  @Get('manage')
+  @ZodSerializerDto(GetQuizzesResDTO)
+  listManage(
+    @Query() rawQuery: any,
+    @ActiveUser('userId') userId: string,
+    @ActiveRolePermissions('name') roleName: string,
+  ) {
+    if (roleName === RoleName.Admin) {
+      const query = GetQuizzesForAdminQuerySchema.parse(rawQuery)
+      return this.quizService.listForAdmin(query)
+    }
+
+    if (roleName === RoleName.Instructor) {
+      const query = GetQuizzesQuerySchema.parse(rawQuery)
+      return this.quizService.listForInstructor(query, userId)
+    }
+
+    return this.quizService.list(GetQuizzesQuerySchema.parse(rawQuery))
   }
 
   @Get('attempts')

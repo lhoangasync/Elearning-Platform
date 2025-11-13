@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable } from '@nestjs/common'
 import { QuizRepository } from './quizz.repository'
 import {
   CreateQuizBodyType,
+  GetQuizzesForAdminQueryType,
   GetQuizzesQueryType,
   StartQuizBodyType,
   StartQuizResType,
@@ -31,6 +32,14 @@ export class QuizService {
 
   async list(query: GetQuizzesQueryType) {
     return this.quizRepository.list(query)
+  }
+
+  async listForAdmin(query: GetQuizzesForAdminQueryType) {
+    return this.quizRepository.listForAdmin(query)
+  }
+
+  async listForInstructor(query: GetQuizzesQueryType, instructorId: string) {
+    return this.quizRepository.listForInstructor(query, instructorId)
   }
 
   async findById(id: string, userId: string, userRoleName: string) {

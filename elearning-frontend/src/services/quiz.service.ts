@@ -186,6 +186,30 @@ export const getAllQuizzes = async (params?: {
   return response.data;
 };
 
+export const getAllQuizzesManage = async (params?: {
+  page?: number;
+  limit?: number;
+  courseId?: string;
+  chapterId?: string;
+  instructorId?: string;
+  search?: string;
+}): Promise<
+  PaginatedResponse<
+    IQuiz & {
+      _count?: { questions: number; attempts: number };
+      course?: {
+        id: string;
+        title: string;
+        chapters: { id: string; title: string }[];
+        instructor: { id: string; fullName: string };
+      };
+    }
+  >
+> => {
+  const response = await api.get(API_ENDPOINT.QUIZZES + "/manage", { params });
+  return response.data;
+};
+
 export const getQuizById = async (quizId: string): Promise<IQuizDetail> => {
   const response = await api.get<IQuizDetail>(
     `${API_ENDPOINT.QUIZZES}/${quizId}`

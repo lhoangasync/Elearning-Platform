@@ -21,6 +21,18 @@ export class CourseService {
     return data
   }
 
+  async listByRole(query: GetCoursesQueryType, userId: string, roleName: string) {
+    if (roleName === RoleName.Instructor) {
+      // Instructors see only their courses
+      return await this.courseRepository.listByInstructor(query, userId)
+    } else if (roleName === RoleName.Admin) {
+      // Admins see all courses
+      return await this.courseRepository.list(query)
+    } else {
+      throw new ForbiddenException('You do not have permission to view this resource')
+    }
+  }
+
   async findById(id: string) {
     const course = await this.courseRepository.findById(id)
     if (!course) throw NotFoundRecordException

@@ -153,6 +153,22 @@ export const getAllCourses = async (
   return response.data;
 };
 
+export const getAllCoursesBaseRole = async (
+  page: number,
+  limit: number
+): Promise<PaginatedResponse<ICourseRes>> => {
+  const response = await api.get<PaginatedResponse<ICourseRes>>(
+    API_ENDPOINT.COURSES + "/manage",
+    {
+      params: {
+        page,
+        limit,
+      },
+    }
+  );
+  return response.data;
+};
+
 // Get Course by ID
 export const getCourseById = async (
   courseId: string

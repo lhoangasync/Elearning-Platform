@@ -38,7 +38,12 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { getAllCourses, ICourse, ICourseRes } from "@/services/course.service";
+import {
+  getAllCourses,
+  getAllCoursesBaseRole,
+  ICourse,
+  ICourseRes,
+} from "@/services/course.service";
 import { getErrorMessage } from "@/utils/error-message";
 import {
   BookOpen,
@@ -90,7 +95,7 @@ function CoursesPage() {
   const fetchCourses = async (pageNum: number = 1, append: boolean = false) => {
     setIsLoading(true);
     try {
-      const response = await getAllCourses(pageNum, 8);
+      const response = await getAllCoursesBaseRole(pageNum, 8);
 
       if (append) {
         setCourses((prev) => [...prev, ...response.data]);

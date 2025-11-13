@@ -7,6 +7,7 @@ import {
   GetQuizDetailResSchema,
   GetQuizForStudentResSchema,
   GetQuizParamsSchema,
+  GetQuizzesForAdminQuerySchema,
   GetQuizzesQuerySchema,
   GetQuizzesResSchema,
   QuizzIncludeQuestionsSchema,
@@ -19,6 +20,8 @@ import {
 } from './quizz.model'
 
 export class GetQuizzesQueryDTO extends createZodDto(GetQuizzesQuerySchema) {}
+
+export class GetQuizzesForAdminQueryDTO extends createZodDto(GetQuizzesForAdminQuerySchema) {}
 
 export class GetQuizParamsDTO extends createZodDto(GetQuizParamsSchema) {}
 

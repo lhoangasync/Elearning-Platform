@@ -55,8 +55,21 @@ export const StudentQuizAttemptSchema = z.object({
 // DTOs
 export const GetQuizzesQuerySchema = z
   .object({
+    page: z.coerce.number().int().positive().default(1),
+    limit: z.coerce.number().int().positive().default(10),
     courseId: z.string().optional(),
     chapterId: z.string().optional(),
+    search: z.string().optional(), // Tìm kiếm theo title
+  })
+  .strict()
+
+export const GetQuizzesForAdminQuerySchema = z
+  .object({
+    page: z.coerce.number().int().positive().default(1),
+    limit: z.coerce.number().int().positive().default(10),
+    courseId: z.string().optional(),
+    instructorId: z.string().optional(), // Admin có thể filter theo instructor
+    search: z.string().optional(),
   })
   .strict()
 
@@ -156,9 +169,17 @@ export const GetQuizzesResSchema = z.object({
             title: z.string(),
           }),
         ),
+        instructor: z.object({
+          id: z.string(),
+          fullName: z.string(),
+        }),
       }),
     }),
   ),
+  totalItems: z.number(),
+  totalPages: z.number(),
+  page: z.number(),
+  limit: z.number(),
 })
 
 export const GetQuizDetailResSchema = QuizSchema.extend({
@@ -259,6 +280,7 @@ export const GetQuizAttemptsResSchema = z.object({
 
 // Types
 export type QuizType = z.infer<typeof QuizSchema>
+export type GetQuizzesForAdminQueryType = z.infer<typeof GetQuizzesForAdminQuerySchema>
 export type CreateQuizzResType = z.infer<typeof CreateQuizzResSchema>
 export type UpdateQuizzResType = z.infer<typeof UpdateQuizzResSchema>
 export type QuizzIncludeQuestionsType = z.infer<typeof QuizzIncludeQuestionsSchema>

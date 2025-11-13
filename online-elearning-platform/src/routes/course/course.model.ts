@@ -29,7 +29,6 @@ export const GetCoursesQuerySchema = z
     limit: z.coerce.number().int().positive().default(10),
     level: z.enum([CourseLevel.Beginner, CourseLevel.Intermediate, CourseLevel.Advanced]).optional(),
     status: z.enum([CourseStatus.Archived, CourseStatus.Draft, CourseStatus.Published]).optional(),
-    category: z.string().optional(),
     search: z.string().optional(),
   })
   .strict()

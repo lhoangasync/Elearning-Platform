@@ -43,7 +43,7 @@ export default async function CourseDetailPage({ params }: { params: Params }) {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-b">
+      <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-b rounded-md">
         <div className="container mx-auto px-4 py-12 lg:py-16">
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Left Content */}

@@ -6,6 +6,7 @@ import {
   GetQuizAttemptsResType,
   GetQuizDetailResType,
   GetQuizForStudentResType,
+  GetQuizzesForAdminQueryType,
   GetQuizzesQueryType,
   GetQuizzesResType,
   QuestionType,
@@ -20,41 +21,193 @@ export class QuizRepository {
   constructor(private prismaService: PrismaService) {}
 
   async list(query: GetQuizzesQueryType): Promise<GetQuizzesResType> {
+    const { page, limit, courseId, chapterId, search } = query
+    const skip = ((page - 1) * limit) as number
+    const take = limit
+
     const where: Prisma.QuizWhereInput = {
       deletedAt: null,
     }
 
-    if (query.courseId) {
-      where.courseId = query.courseId
+    if (courseId) {
+      where.courseId = courseId
     }
 
-    if (query.chapterId) {
-      where.chapterId = query.chapterId
+    if (chapterId) {
+      where.chapterId = chapterId
     }
 
-    const data = await this.prismaService.quiz.findMany({
-      where,
-      include: {
-        _count: {
-          select: {
-            questions: true,
-            attempts: true,
-          },
-        },
-        course: {
-          select: {
-            id: true,
-            title: true,
-            chapters: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
+    if (search) {
+      where.title = {
+        contains: search,
+        mode: 'insensitive',
+      }
+    }
 
-    return { data }
+    const [totalItems, data] = await Promise.all([
+      this.prismaService.quiz.count({ where }),
+      this.prismaService.quiz.findMany({
+        where,
+        skip,
+        take,
+        include: {
+          _count: {
+            select: {
+              questions: true,
+              attempts: true,
+            },
+          },
+          course: {
+            select: {
+              id: true,
+              title: true,
+              chapters: true,
+              instructor: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+    ])
+
+    return {
+      data,
+      totalItems,
+      totalPages: Math.ceil(totalItems / limit),
+      page,
+      limit,
+    }
+  }
+
+  async listForAdmin(query: GetQuizzesForAdminQueryType): Promise<GetQuizzesResType> {
+    const { page, limit, courseId, instructorId, search } = query
+    const skip = ((page - 1) * limit) as number
+    const take = limit
+
+    console.log('>>>> page ', page, ' limit ', limit)
+
+    const where: Prisma.QuizWhereInput = {
+      deletedAt: null,
+    }
+
+    if (courseId) {
+      where.courseId = courseId
+    }
+
+    if (instructorId) {
+      where.course = {
+        instructorId,
+      }
+    }
+
+    if (search) {
+      where.title = {
+        contains: search,
+        mode: 'insensitive',
+      }
+    }
+
+    const [totalItems, data] = await Promise.all([
+      this.prismaService.quiz.count({ where }),
+      this.prismaService.quiz.findMany({
+        where,
+        skip,
+        take,
+        include: {
+          _count: {
+            select: {
+              questions: true,
+              attempts: true,
+            },
+          },
+          course: {
+            select: {
+              id: true,
+              title: true,
+              chapters: true,
+              instructor: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+    ])
+
+    return {
+      data,
+      totalItems,
+      totalPages: Math.ceil(totalItems / limit),
+      page,
+      limit,
+    }
+  }
+
+  async listForInstructor(query: GetQuizzesQueryType, instructorId: string): Promise<GetQuizzesResType> {
+    const { page, limit, courseId, chapterId, search } = query
+    const skip = (page - 1) * limit
+    const take = limit
+
+    const where: Prisma.QuizWhereInput = {
+      deletedAt: null,
+      course: {
+        instructorId, // Chỉ lấy quiz của instructor này
+      },
+    }
+
+    if (courseId) {
+      where.courseId = courseId
+    }
+
+    if (chapterId) {
+      where.chapterId = chapterId
+    }
+
+    if (search) {
+      where.title = {
+        contains: search,
+        mode: 'insensitive',
+      }
+    }
+
+    const [totalItems, data] = await Promise.all([
+      this.prismaService.quiz.count({ where }),
+      this.prismaService.quiz.findMany({
+        where,
+        skip,
+        take,
+        include: {
+          _count: {
+            select: {
+              questions: true,
+              attempts: true,
+            },
+          },
+          course: {
+            select: {
+              id: true,
+              title: true,
+              chapters: true,
+              instructor: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+    ])
+
+    return {
+      data,
+      totalItems,
+      totalPages: Math.ceil(totalItems / limit),
+      page,
+      limit,
+    }
   }
 
   async findById(id: string): Promise<GetQuizDetailResType | null> {
