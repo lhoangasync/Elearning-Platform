@@ -39,7 +39,6 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
-  getAllCourses,
   getAllCoursesBaseRole,
   ICourse,
   ICourseRes,
@@ -62,7 +61,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useDebounce } from "use-debounce";
 
@@ -78,60 +77,123 @@ const STATUS_COLORS = {
   ARCHIVED: "bg-red-500 text-white border-red-600",
 };
 
+interface PaginationState {
+  pageIndex: number;
+  pageSize: number;
+}
+
 function CoursesPage() {
   const router = useRouter();
-  const [courses, setCourses] = useState<ICourseRes[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+
+  // Data & Loading
+  const [data, setData] = useState<ICourseRes[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Pagination
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 8,
+  });
+
+  // Filters
   const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearch] = useDebounce(searchQuery, 500);
-  const [levelFilter, setLevelFilter] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
+  const [levelFilter, setLevelFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  // Modal
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [courseToDelete, setCourseToDelete] = useState<ICourse | null>(null);
-  const [page, setPage] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
 
-  const fetchCourses = async (pageNum: number = 1, append: boolean = false) => {
+  // Ref để chặn fetch sai trang khi vừa đổi filter
+  const filterChangedRef = useRef(false);
+
+  const fetchCourses = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await getAllCoursesBaseRole(pageNum, 8);
+      const response = await getAllCoursesBaseRole(
+        pagination.pageIndex + 1,
+        pagination.pageSize,
+        levelFilter !== "all" ? levelFilter : undefined,
+        statusFilter !== "all" ? statusFilter : undefined,
+        debouncedSearchQuery || undefined
+      );
 
-      if (append) {
-        setCourses((prev) => [...prev, ...response.data]);
-      } else {
-        setCourses(response.data);
-      }
-
+      setData(response.data);
       setTotalItems(response.totalItems);
-      setHasMore(pageNum < response.totalPages);
     } catch (error) {
+      console.error("Error fetching courses:", error);
       toast.error("Failed to fetch courses", {
         description: getErrorMessage(error),
       });
+      setData([]);
+      setTotalItems(0);
     } finally {
       setIsLoading(false);
     }
+  }, [
+    pagination.pageIndex,
+    pagination.pageSize,
+    debouncedSearchQuery,
+    levelFilter,
+    statusFilter,
+  ]);
+
+  // Khi search hoặc filter đổi → reset page về đầu
+  useEffect(() => {
+    filterChangedRef.current = true;
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [debouncedSearchQuery, levelFilter, statusFilter]);
+
+  // Khi pagination hoặc filter đổi → fetch dữ liệu
+  useEffect(() => {
+    if (filterChangedRef.current && pagination.pageIndex !== 0) {
+      return; // chặn fetch sai trang khi vừa đổi filter
+    }
+
+    fetchCourses();
+    filterChangedRef.current = false;
+  }, [fetchCourses, pagination.pageIndex]);
+
+  const pageCount = Math.ceil(totalItems / pagination.pageSize);
+
+  const handlePrevPage = () => {
+    setPagination((prev) => ({
+      ...prev,
+      pageIndex: Math.max(0, prev.pageIndex - 1),
+    }));
   };
 
-  useEffect(() => {
-    setPage(1);
-    fetchCourses(1, false);
-  }, [debouncedSearch, levelFilter, statusFilter]);
+  const handleNextPage = () => {
+    setPagination((prev) => ({
+      ...prev,
+      pageIndex: Math.min(pageCount - 1, prev.pageIndex + 1),
+    }));
+  };
 
-  const loadMore = () => {
-    const nextPage = page + 1;
-    setPage(nextPage);
-    fetchCourses(nextPage, true);
+  const handlePageSize = (size: number) => {
+    setPagination((prev) => ({
+      ...prev,
+      pageIndex: 0,
+      pageSize: size,
+    }));
   };
 
   const clearFilters = () => {
-    setLevelFilter("");
-    setStatusFilter("");
+    setLevelFilter("all");
+    setStatusFilter("all");
     setSearchQuery("");
   };
 
-  const hasActiveFilters = levelFilter || statusFilter || searchQuery;
+  const hasActiveFilters =
+    levelFilter !== "all" || statusFilter !== "all" || searchQuery;
+
+  const startItem = pagination.pageIndex * pagination.pageSize + 1;
+  const endItem = Math.min(
+    (pagination.pageIndex + 1) * pagination.pageSize,
+    totalItems
+  );
 
   return (
     <>
@@ -184,7 +246,7 @@ function CoursesPage() {
                   <SelectValue placeholder="All Levels" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value=" ">All Levels</SelectItem>
+                  <SelectItem value="all">All Levels</SelectItem>
                   <SelectItem value="BEGINNER">Beginner</SelectItem>
                   <SelectItem value="INTERMEDIATE">Intermediate</SelectItem>
                   <SelectItem value="ADVANCED">Advanced</SelectItem>
@@ -196,7 +258,7 @@ function CoursesPage() {
                   <SelectValue placeholder="All Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value=" ">All Status</SelectItem>
+                  <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="DRAFT">Draft</SelectItem>
                   <SelectItem value="PUBLISHED">Published</SelectItem>
                   <SelectItem value="ARCHIVED">Archived</SelectItem>
@@ -209,6 +271,46 @@ function CoursesPage() {
                   Clear all
                 </Button>
               )}
+            </div>
+
+            {/* Pagination Info */}
+            <div className="flex items-center justify-between pt-2 border-t">
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                  Courses per page
+                </span>
+                <Select
+                  value={pagination.pageSize.toString()}
+                  onValueChange={(value) => handlePageSize(Number(value))}
+                >
+                  <SelectTrigger className="w-fit">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[4, 8, 12, 16].map((pageSize) => (
+                      <SelectItem key={pageSize} value={pageSize.toString()}>
+                        {pageSize}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="text-sm text-muted-foreground">
+                {totalItems > 0 ? (
+                  <p aria-live="polite">
+                    <span className="text-foreground font-medium">
+                      {startItem}-{endItem}
+                    </span>{" "}
+                    of{" "}
+                    <span className="text-foreground font-medium">
+                      {totalItems}
+                    </span>
+                  </p>
+                ) : (
+                  <p>No items to display</p>
+                )}
+              </div>
             </div>
           </div>
         </CardContent>
@@ -224,7 +326,7 @@ function CoursesPage() {
           <CardContent>
             <div className="text-2xl font-bold">{totalItems}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {courses.length} currently loaded
+              {data.length} on this page
             </p>
           </CardContent>
         </Card>
@@ -236,7 +338,7 @@ function CoursesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {courses.filter((c) => c.status === "PUBLISHED").length}
+              {data.filter((c) => c.status === "PUBLISHED").length}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Live on platform
@@ -251,7 +353,7 @@ function CoursesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {courses.filter((c) => c.status === "DRAFT").length}
+              {data.filter((c) => c.status === "DRAFT").length}
             </div>
             <p className="text-xs text-muted-foreground mt-1">In preparation</p>
           </CardContent>
@@ -266,20 +368,17 @@ function CoursesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {courses.reduce(
-                (sum, c) => sum + (c._count?.enrollments || 0),
-                0
-              )}
+              {data.reduce((sum, c) => sum + (c._count?.enrollments || 0), 0)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Across all courses
+              Across current page
             </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Courses Grid */}
-      {isLoading && courses.length === 0 ? (
+      {isLoading && data.length === 0 ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 8 }).map((_, i) => (
             <Card key={i} className="overflow-hidden flex flex-col">
@@ -296,7 +395,7 @@ function CoursesPage() {
             </Card>
           ))}
         </div>
-      ) : courses.length === 0 ? (
+      ) : data.length === 0 ? (
         <Card className="py-12">
           <CardContent className="text-center">
             <BookOpen className="mx-auto h-12 w-12 text-muted-foreground" />
@@ -324,7 +423,7 @@ function CoursesPage() {
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {courses.map((course) => (
+            {data.map((course) => (
               <Card
                 key={course.id}
                 className="group overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] flex flex-col cursor-pointer"
@@ -492,14 +591,34 @@ function CoursesPage() {
             ))}
           </div>
 
-          {/* Load More */}
-          {hasMore && (
-            <div className="flex justify-center">
-              <Button variant="outline" onClick={loadMore} disabled={isLoading}>
-                {isLoading ? "Loading..." : "Load More Courses"}
+          {/* Pagination Controls */}
+          <div className="flex items-center justify-between gap-4 mt-8">
+            <div />
+
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handlePrevPage}
+                disabled={pagination.pageIndex === 0}
+              >
+                Previous
+              </Button>
+              <div className="text-sm text-muted-foreground min-w-fit px-2">
+                Page {pagination.pageIndex + 1} of {pageCount || 1}
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleNextPage}
+                disabled={
+                  pagination.pageIndex === pageCount - 1 || pageCount === 0
+                }
+              >
+                Next
               </Button>
             </div>
-          )}
+          </div>
         </>
       )}
 

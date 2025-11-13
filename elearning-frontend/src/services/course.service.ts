@@ -139,7 +139,10 @@ export interface ReorderLessonsDto {
 // Get All Courses with Pagination
 export const getAllCourses = async (
   page: number,
-  limit: number
+  limit: number,
+  status?: string,
+  level?: string,
+  search?: string
 ): Promise<PaginatedResponse<ICourseRes>> => {
   const response = await api.get<PaginatedResponse<ICourseRes>>(
     API_ENDPOINT.COURSES,
@@ -147,6 +150,9 @@ export const getAllCourses = async (
       params: {
         page,
         limit,
+        ...(status ? { status } : {}),
+        ...(level ? { level } : {}),
+        ...(search ? { search } : {}),
       },
     }
   );
@@ -155,7 +161,10 @@ export const getAllCourses = async (
 
 export const getAllCoursesBaseRole = async (
   page: number,
-  limit: number
+  limit: number,
+  level?: string,
+  status?: string,
+  search?: string
 ): Promise<PaginatedResponse<ICourseRes>> => {
   const response = await api.get<PaginatedResponse<ICourseRes>>(
     API_ENDPOINT.COURSES + "/manage",
@@ -163,6 +172,9 @@ export const getAllCoursesBaseRole = async (
       params: {
         page,
         limit,
+        ...(level ? { level } : {}),
+        ...(status ? { status } : {}),
+        ...(search ? { search } : {}),
       },
     }
   );

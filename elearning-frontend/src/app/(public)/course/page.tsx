@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 import {
   Search,
   BookOpen,
@@ -11,6 +17,7 @@ import {
   ChevronRight,
   GraduationCap,
   Loader2,
+  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -36,9 +43,15 @@ import Image from "next/image";
 import { getAllCourses, type ICourseRes } from "@/services/course.service";
 import { toast } from "sonner";
 import { getInitials } from "@/utils/get-initial";
+import { useDebounce } from "use-debounce";
 
 interface CourseWithQuizzes extends ICourseRes {
   quizCount?: number;
+}
+
+interface PaginationState {
+  pageIndex: number;
+  pageSize: number;
 }
 
 const COURSE_CATEGORIES = [
@@ -57,8 +70,13 @@ const COURSE_CATEGORIES = [
   "Teaching & Academics",
 ] as const;
 
-const ITEMS_PER_PAGE = 12;
 const LEVELS = ["BEGINNER", "INTERMEDIATE", "ADVANCED"] as const;
+const SORT_OPTIONS = [
+  { value: "popular", label: "Most Popular" },
+  { value: "newest", label: "Newest First" },
+  { value: "chapters", label: "Most Chapters" },
+  { value: "title", label: "A-Z" },
+] as const;
 
 // Loading Skeleton
 function CoursesGridSkeleton() {
@@ -287,11 +305,11 @@ function getLevelColor(level: string): string {
 function getLevelLabel(level: string): string {
   switch (level) {
     case "BEGINNER":
-      return "Beginner";
+      return "BEGINNER";
     case "INTERMEDIATE":
-      return "Intermediate";
+      return "INTERMEDIATE";
     case "ADVANCED":
-      return "Advanced";
+      return "ADVANCED";
     default:
       return level;
   }
@@ -301,123 +319,110 @@ function getLevelLabel(level: string): string {
 export default function CoursesPage() {
   const router = useRouter();
 
-  const [allCourses, setAllCourses] = useState<CourseWithQuizzes[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const [data, setData] = useState<CourseWithQuizzes[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 12,
+  });
+
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedLevel, setSelectedLevel] = useState("all");
   const [sortBy, setSortBy] = useState("popular");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [displayedCount, setDisplayedCount] = useState(ITEMS_PER_PAGE);
 
-  // Fetch all courses
-  useEffect(() => {
-    const fetchAllCourses = async () => {
-      try {
-        setLoading(true);
-        let allData: CourseWithQuizzes[] = [];
-        let page = 1;
-        let hasMore = true;
+  const filterChangedRef = useRef(false);
 
-        while (hasMore) {
-          const response = await getAllCourses(page, 100);
+  const fetchCourses = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const response = await getAllCourses(
+        pagination.pageIndex + 1,
+        pagination.pageSize,
+        "PUBLISHED",
+        selectedLevel !== "all" ? selectedLevel : undefined,
+        debouncedSearchQuery || undefined
+      );
 
-          const publishedCourses = response.data.filter(
-            (course) => course.status === "PUBLISHED"
-          );
-
-          allData = [...allData, ...publishedCourses];
-
-          hasMore = page < response.totalPages;
-          page++;
-        }
-
-        setAllCourses(allData);
-      } catch (error) {
-        console.error("Error fetching courses:", error);
-        toast.error("Failed to load courses");
-        setAllCourses([]);
-      } finally {
-        setLoading(false);
+      // Apply category filter on client side
+      let filteredData = response.data;
+      if (selectedCategory !== "all") {
+        filteredData = filteredData.filter(
+          (course) => course.category === selectedCategory
+        );
       }
-    };
 
-    fetchAllCourses();
-  }, []);
+      // Apply sorting
+      filteredData = applySorting(filteredData, sortBy);
 
-  // Filter and sort courses
-  const filteredAndSortedCourses = useMemo(() => {
-    let filtered = [...allCourses];
-
-    // Search filter
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (course) =>
-          course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          course.description
-            ?.toLowerCase()
-            .includes(searchQuery.toLowerCase()) ||
-          course.instructor?.fullName
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase())
-      );
+      setData(filteredData);
+      setTotalItems(response.totalItems);
+    } catch (error) {
+      console.error("Error fetching courses:", error);
+      toast.error("Failed to load courses");
+      setData([]);
+      setTotalItems(0);
+    } finally {
+      setIsLoading(false);
     }
+  }, [
+    pagination.pageIndex,
+    pagination.pageSize,
+    selectedLevel,
+    debouncedSearchQuery,
+    selectedCategory,
+    sortBy,
+  ]);
 
-    // Category filter
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter(
-        (course) => course.category === selectedCategory
-      );
-    }
-
-    // Level filter
-    if (selectedLevel !== "all") {
-      filtered = filtered.filter((course) => course.level === selectedLevel);
-    }
-
-    // Sort
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case "popular":
-          return (b._count?.enrollments || 0) - (a._count?.enrollments || 0);
-        case "newest":
-          return (
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-        case "chapters":
-          return (b._count?.chapters || 0) - (a._count?.chapters || 0);
-        case "title":
-          return a.title.localeCompare(b.title);
-        default:
-          return 0;
-      }
-    });
-
-    return filtered;
-  }, [allCourses, searchQuery, selectedCategory, selectedLevel, sortBy]);
-
-  // Get displayed courses
-  const displayedCourses = useMemo(() => {
-    return filteredAndSortedCourses.slice(0, displayedCount);
-  }, [filteredAndSortedCourses, displayedCount]);
-
-  const hasMore = displayedCount < filteredAndSortedCourses.length;
-
-  const handleLoadMore = useCallback(() => {
-    setLoadingMore(true);
-    setTimeout(() => {
-      setDisplayedCount((prev) =>
-        Math.min(prev + ITEMS_PER_PAGE, filteredAndSortedCourses.length)
-      );
-      setLoadingMore(false);
-    }, 300);
-  }, [filteredAndSortedCourses.length]);
-
-  // Reset displayed count when filters change
+  // Khi search hoặc filter đổi → reset page về đầu
   useEffect(() => {
-    setDisplayedCount(ITEMS_PER_PAGE);
-  }, [searchQuery, selectedCategory, selectedLevel, sortBy]);
+    filterChangedRef.current = true;
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [debouncedSearchQuery, selectedCategory, selectedLevel, sortBy]);
+
+  // Khi pagination hoặc filter đổi → fetch dữ liệu
+  useEffect(() => {
+    if (filterChangedRef.current && pagination.pageIndex !== 0) {
+      return; // chặn fetch sai trang khi vừa đổi filter
+    }
+
+    fetchCourses();
+    filterChangedRef.current = false;
+  }, [fetchCourses, pagination.pageIndex]);
+
+  const pageCount = Math.ceil(totalItems / pagination.pageSize);
+
+  const handlePrevPage = () => {
+    setPagination((prev) => ({
+      ...prev,
+      pageIndex: Math.max(0, prev.pageIndex - 1),
+    }));
+  };
+
+  const handleNextPage = () => {
+    setPagination((prev) => ({
+      ...prev,
+      pageIndex: Math.min(pageCount - 1, prev.pageIndex + 1),
+    }));
+  };
+
+  const handlePageSize = (size: number) => {
+    setPagination((prev) => ({
+      ...prev,
+      pageIndex: 0,
+      pageSize: size,
+    }));
+  };
+
+  const startItem = pagination.pageIndex * pagination.pageSize + 1;
+  const endItem = Math.min(
+    (pagination.pageIndex + 1) * pagination.pageSize,
+    totalItems
+  );
 
   return (
     <div className="space-y-6">
@@ -426,7 +431,9 @@ export default function CoursesPage() {
         <div>
           <h1 className="text-3xl font-bold mb-2">Explore Courses</h1>
           <p className="text-muted-foreground">
-            Discover {allCourses.length} courses to boost your skills
+            Discover{" "}
+            <span className="font-semibold text-foreground">{totalItems}</span>{" "}
+            courses to boost your skills
           </p>
         </div>
         <Tabs
@@ -498,25 +505,44 @@ export default function CoursesPage() {
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="popular">Most Popular</SelectItem>
-                  <SelectItem value="newest">Newest First</SelectItem>
-                  <SelectItem value="chapters">Most Chapters</SelectItem>
-                  <SelectItem value="title">A-Z</SelectItem>
+                  {SORT_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+
+              {(selectedCategory !== "all" ||
+                selectedLevel !== "all" ||
+                searchQuery) && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSelectedCategory("all");
+                    setSelectedLevel("all");
+                    setSortBy("popular");
+                  }}
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Clear Filters
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Courses Content */}
-      {loading ? (
+      {isLoading ? (
         viewMode === "grid" ? (
           <CoursesGridSkeleton />
         ) : (
           <CoursesListSkeleton />
         )
-      ) : displayedCourses.length === 0 ? (
+      ) : data.length === 0 ? (
         <Card className="p-12">
           <div className="flex flex-col items-center justify-center text-center">
             <div className="rounded-full bg-muted p-4 mb-4">
@@ -532,37 +558,107 @@ export default function CoursesPage() {
         <>
           {viewMode === "grid" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {displayedCourses.map((course) => (
+              {data.map((course) => (
                 <CourseCardGrid key={course.id} course={course} />
               ))}
             </div>
           ) : (
             <div className="space-y-4">
-              {displayedCourses.map((course) => (
+              {data.map((course) => (
                 <CourseCardList key={course.id} course={course} />
               ))}
             </div>
           )}
 
-          {/* Load More Button */}
-          {hasMore && (
-            <div className="mt-8 flex justify-center">
-              <Button
-                onClick={handleLoadMore}
-                disabled={loadingMore}
-                size="lg"
-                variant="outline"
+          {/* Pagination Controls */}
+          <div className="flex items-center justify-between gap-8 mt-8">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
+                Rows per page
+              </span>
+              <Select
+                value={pagination.pageSize.toString()}
+                onValueChange={(value) => handlePageSize(Number(value))}
               >
-                {loadingMore && (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin text-blue-500" />
-                )}
-                Load More ({filteredAndSortedCourses.length - displayedCount}{" "}
-                remaining)
-              </Button>
+                <SelectTrigger className="w-fit">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[6, 12, 18, 24].map((pageSize) => (
+                    <SelectItem key={pageSize} value={pageSize.toString()}>
+                      {pageSize}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          )}
+
+            <div className="flex items-center gap-6">
+              <div className="text-sm text-muted-foreground whitespace-nowrap">
+                {totalItems > 0 ? (
+                  <p aria-live="polite">
+                    <span className="text-foreground font-medium">
+                      {startItem}-{endItem}
+                    </span>{" "}
+                    of{" "}
+                    <span className="text-foreground font-medium">
+                      {totalItems}
+                    </span>
+                  </p>
+                ) : (
+                  <p>No items to display</p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handlePrevPage}
+                  disabled={pagination.pageIndex === 0}
+                >
+                  Previous
+                </Button>
+                <div className="text-sm text-muted-foreground min-w-fit">
+                  Page {pagination.pageIndex + 1} of {pageCount || 1}
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleNextPage}
+                  disabled={
+                    pagination.pageIndex === pageCount - 1 || pageCount === 0
+                  }
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </div>
         </>
       )}
     </div>
   );
+}
+
+// Sorting function
+function applySorting(courses: CourseWithQuizzes[], sortBy: string) {
+  const sorted = [...courses];
+  sorted.sort((a, b) => {
+    switch (sortBy) {
+      case "popular":
+        return (b._count?.enrollments || 0) - (a._count?.enrollments || 0);
+      case "newest":
+        return (
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      case "chapters":
+        return (b._count?.chapters || 0) - (a._count?.chapters || 0);
+      case "title":
+        return a.title.localeCompare(b.title);
+      default:
+        return 0;
+    }
+  });
+  return sorted;
 }
