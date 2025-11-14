@@ -11,6 +11,7 @@ export const LessonSchema = z.object({
   documentUrl: z.url().nullable(),
   transcript: z.string().nullable(),
   duration: z.number().int().positive().nullable(),
+  content: z.string().nullable().optional(),
   chapterId: z.string(),
   deletedAt: z.date().nullable(),
   createdAt: z.date(),
@@ -38,6 +39,7 @@ export const CreateLessonBodySchema = z
     documentUrl: z.url().nullable().optional(),
     transcript: z.string().nullable().optional(),
     duration: z.number().int().positive().nullable().optional(),
+    content: z.string().nullable().optional(),
     position: z.number().int().positive().optional(),
   })
   .strict()
@@ -49,6 +51,7 @@ export const UpdateLessonBodySchema = z
     documentUrl: z.url().nullable().optional(),
     transcript: z.string().nullable().optional(),
     duration: z.number().int().positive().nullable().optional(),
+    content: z.string().nullable().optional(),
     position: z.number().int().positive().optional(),
   })
   .strict()

@@ -59,6 +59,7 @@ export interface ILesson {
   position: number;
   videoUrl: string | null;
   documentUrl: string | null;
+  content: string | null;
 }
 
 export interface IChapter {

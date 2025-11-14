@@ -214,6 +214,7 @@ model Lesson {
   documentUrl String?
   transcript  String?
   duration   Int?
+  content     String?
 
   chapterId String  @db.ObjectId
   chapter   Chapter @relation(fields: [chapterId], references: [id])

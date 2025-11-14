@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   Download,
 } from "lucide-react";
+import YouTube, { YouTubeProps } from "react-youtube";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,16 @@ import {
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+
+// Extract YouTube video ID from URL
+function extractYouTubeId(url: string): string | null {
+  if (!url) return null;
+
+  const youtubeRegex =
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/;
+  const match = url.match(youtubeRegex);
+  return match ? match[1] : null;
+}
 
 // Loading skeleton for the entire page
 function LearningPageSkeleton() {
@@ -99,6 +110,7 @@ export default function LearningPage({ params }: { params: Params }) {
     try {
       setLoading(true);
       const data = await getEnrollmentById(enrollmentId);
+      console.log(">>> Enrollment Data:", data);
       setEnrollmentData(data);
 
       // Auto select first lesson
@@ -252,6 +264,189 @@ export default function LearningPage({ params }: { params: Params }) {
     return labels[level] || level;
   };
 
+  // Function to render lesson content based on type
+  const renderLessonContent = () => {
+    if (!currentLesson) {
+      return (
+        <div className="w-full h-full flex items-center justify-center bg-background">
+          <div className="text-center">
+            <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">
+              Select a lesson to get started
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    const youtubeId = extractYouTubeId(currentLesson.videoUrl || "");
+    const isYouTubeUrl = youtubeId !== null;
+
+    const opts: YouTubeProps["opts"] = {
+      height: "390",
+      width: "100%",
+      playerVars: {
+        autoplay: 0,
+        controls: 1,
+        modestbranding: 1,
+      },
+    };
+
+    // Priority 1: Video (YouTube or regular video)
+    if (currentLesson.videoUrl) {
+      return (
+        <>
+          {/* Video Container - Full Width */}
+          <div className="relative w-full bg-black" style={{ height: "55vh" }}>
+            {isYouTubeUrl ? (
+              <div className="absolute inset-0">
+                <YouTube
+                  videoId={youtubeId}
+                  opts={{
+                    width: "100%",
+                    height: "100%",
+                    playerVars: {
+                      autoplay: 0,
+                      controls: 1,
+                      modestbranding: 1,
+                    },
+                  }}
+                  iframeClassName="youtube-iframe"
+                />
+              </div>
+            ) : (
+              <video
+                key={currentLesson.id}
+                controls
+                className="w-full h-full object-contain"
+                src={currentLesson.videoUrl}
+              />
+            )}
+          </div>
+
+          {/* Content Below Video */}
+          {currentLesson.content && (
+            <div className="w-full bg-background p-6 md:p-8 mt-0">
+              {/* FULL-WIDTH SEPARATOR */}
+              <Separator className="w-full max-w-none mb-6" />
+
+              <div className="max-w-4xl">
+                <h3 className="font-semibold text-lg md:text-xl mb-4 md:mb-6">
+                  Lesson Materials
+                </h3>
+
+                <div
+                  className="prose prose-sm md:prose-base dark:prose-invert max-w-none"
+                  dangerouslySetInnerHTML={{ __html: currentLesson.content }}
+                />
+              </div>
+            </div>
+          )}
+        </>
+      );
+    }
+
+    // Priority 2: Document
+    if (currentLesson.documentUrl) {
+      return (
+        <div className="w-full bg-background p-6 md:p-8 overflow-auto">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <FileText className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-xl truncate">
+                  {currentLesson.title}
+                </h3>
+                <p className="text-sm text-muted-foreground">Document Lesson</p>
+              </div>
+            </div>
+            <Separator className="mb-6" />
+            <div className="space-y-6">
+              <div className="prose dark:prose-invert max-w-none">
+                <p className="text-muted-foreground mb-4">
+                  This lesson contains document materials for you to review.
+                </p>
+                <Button asChild variant="default">
+                  <a
+                    href={currentLesson.documentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Document
+                  </a>
+                </Button>
+              </div>
+
+              {/* Show content if exists */}
+              {currentLesson.content && (
+                <>
+                  <Separator />
+                  <div>
+                    <h4 className="font-semibold text-lg mb-4">
+                      Additional Materials
+                    </h4>
+                    <div
+                      className="prose dark:prose-invert max-w-none"
+                      dangerouslySetInnerHTML={{
+                        __html: currentLesson.content,
+                      }}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Priority 3: Content only
+    if (currentLesson.content) {
+      return (
+        <div className="w-full bg-background p-6 md:p-8 overflow-auto">
+          {/* FULL WIDTH SEPARATOR */}
+          <Separator className="w-full max-w-none mb-6" />
+
+          <div className="max-w-4xl">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <BookOpen className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-xl truncate">
+                  {currentLesson.title}
+                </h3>
+                <p className="text-sm text-muted-foreground">Reading Lesson</p>
+              </div>
+            </div>
+
+            {/* CONTENT */}
+            <div
+              className="prose prose-sm md:prose-base dark:prose-invert max-w-none"
+              dangerouslySetInnerHTML={{ __html: currentLesson.content }}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    // No content available
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-background">
+        <div className="text-center">
+          <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">
+            No content available for this lesson
+          </p>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return <LearningPageSkeleton />;
   }
@@ -336,7 +531,7 @@ export default function LearningPage({ params }: { params: Params }) {
         </div>
 
         {/* Chapters & Lessons */}
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 overflow-y-auto">
           <div className="p-2">
             {enrollmentData.course.chapters
               .sort((a, b) => a.position - b.position)
@@ -440,65 +635,8 @@ export default function LearningPage({ params }: { params: Params }) {
         </div>
 
         {/* Video/Content Player */}
-        <div className="flex-1 overflow-auto bg-muted">
-          {currentLesson?.videoUrl ? (
-            <div className="w-full h-full flex items-center justify-center">
-              <video
-                key={currentLesson.id}
-                controls
-                className="w-full h-full max-h-full object-contain"
-                src={currentLesson.videoUrl}
-              >
-                Your browser does not support the video tag.
-              </video>
-            </div>
-          ) : currentLesson?.documentUrl ? (
-            <div className="w-full h-full p-8 bg-background overflow-auto">
-              <Card className="max-w-4xl mx-auto">
-                <CardContent className="p-8">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <FileText className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-xl truncate">
-                        {currentLesson.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        Document Lesson
-                      </p>
-                    </div>
-                  </div>
-                  <Separator className="mb-6" />
-                  <div className="prose dark:prose-invert max-w-none">
-                    <p className="text-muted-foreground mb-4">
-                      This lesson contains document materials for you to review.
-                    </p>
-                    <Button asChild variant="default">
-                      <a
-                        href={currentLesson.documentUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        download
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Download Document
-                      </a>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-background">
-              <div className="text-center">
-                <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">
-                  No content available for this lesson
-                </p>
-              </div>
-            </div>
-          )}
+        <div className="flex-1 overflow-auto bg-background flex flex-col">
+          {renderLessonContent()}
         </div>
 
         {/* Bottom Navigation */}

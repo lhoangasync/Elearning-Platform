@@ -8,6 +8,14 @@
 
 @custom-variant dark (&:is(.dark *));
 
+.youtube-iframe {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 :root {
   --background: oklch(0.99 0 0);
   --foreground: oklch(0 0 0);

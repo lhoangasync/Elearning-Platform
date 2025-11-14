@@ -27,6 +27,7 @@ import {
   Trash2,
   Save,
   RotateCcw,
+  Edit2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -63,11 +64,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { EditLessonModal } from "./EditLessonModal";
 
 interface Lesson {
   id: string;
   title: string;
   order: number;
+  videoUrl: string | null;
+  documentUrl: string | null;
+  content?: string | null;
 }
 
 interface Chapter {
@@ -90,15 +95,20 @@ function mapCourseStructure(course: ICourseDetailRes): Chapter[] {
         id: l.id,
         title: l.title,
         order: l.position,
+        videoUrl: l.videoUrl ?? null,
+        documentUrl: l.documentUrl ?? null,
+        content: l.content ?? null,
       })) ?? [],
   }));
 }
 
 function SortableLesson({
   lesson,
+  onEdit,
   onDelete,
 }: {
   lesson: Lesson;
+  onEdit: (lesson: Lesson) => void;
   onDelete: (id: string) => void;
 }) {
   const {
@@ -136,6 +146,14 @@ function SortableLesson({
       <Button
         variant="ghost"
         size="icon"
+        className="h-8 w-8 text-muted-foreground hover:text-primary"
+        onClick={() => onEdit(lesson)}
+      >
+        <Edit2 className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
         className="h-8 w-8 text-muted-foreground hover:text-destructive"
         onClick={() => onDelete(lesson.id)}
       >
@@ -150,6 +168,7 @@ function SortableChapter({
   onToggle,
   onDelete,
   onAddLesson,
+  onEditLesson,
   onDeleteLesson,
   onUpdateLessons,
 }: {
@@ -157,6 +176,7 @@ function SortableChapter({
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onAddLesson: (chapterId: string) => void;
+  onEditLesson: (lesson: Lesson) => void;
   onDeleteLesson: (chapterId: string, lessonId: string) => void;
   onUpdateLessons: (chapterId: string, lessons: Lesson[]) => void;
 }) {
@@ -246,6 +266,7 @@ function SortableChapter({
                   <SortableLesson
                     key={lesson.id}
                     lesson={lesson}
+                    onEdit={onEditLesson}
                     onDelete={(lessonId) =>
                       onDeleteLesson(chapter.id, lessonId)
                     }
@@ -293,6 +314,10 @@ export default function CourseStructure({
     id: string;
     chapterId?: string;
   }>({ open: false, type: "chapter", id: "" });
+  const [editLessonDialog, setEditLessonDialog] = useState<{
+    open: boolean;
+    lesson: Lesson | null;
+  }>({ open: false, lesson: null });
 
   const router = useRouter();
 
@@ -443,6 +468,9 @@ export default function CourseStructure({
                   id: newLesson.id,
                   title: newLesson.title,
                   order: newLesson.position,
+                  videoUrl: newLesson.videoUrl ?? null,
+                  documentUrl: newLesson.documentUrl ?? null,
+                  content: newLesson.content ?? null,
                 },
               ],
             }
@@ -463,6 +491,10 @@ export default function CourseStructure({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleEditLesson = (lesson: Lesson) => {
+    setEditLessonDialog({ open: true, lesson });
   };
 
   const handleDeleteLesson = (chapterId: string, lessonId: string) => {
@@ -584,6 +616,12 @@ export default function CourseStructure({
     toast.info("Changes discarded");
   };
 
+  const handleLessonUpdateSuccess = () => {
+    // Refresh the course data to get the updated lesson info
+    router.refresh();
+    setEditLessonDialog({ open: false, lesson: null });
+  };
+
   return (
     <div className="space-y-6">
       {hasChanges && (
@@ -651,6 +689,7 @@ export default function CourseStructure({
                     onToggle={toggleChapter}
                     onDelete={handleDeleteChapter}
                     onAddLesson={addLesson}
+                    onEditLesson={handleEditLesson}
                     onDeleteLesson={handleDeleteLesson}
                     onUpdateLessons={updateLessons}
                   />
@@ -801,6 +840,16 @@ export default function CourseStructure({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Lesson Modal */}
+      <EditLessonModal
+        open={editLessonDialog.open}
+        onOpenChange={(open) =>
+          setEditLessonDialog({ ...editLessonDialog, open })
+        }
+        lesson={editLessonDialog.lesson}
+        onSuccess={handleLessonUpdateSuccess}
+      />
     </div>
   );
 }

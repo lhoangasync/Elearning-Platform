@@ -182,6 +182,7 @@ export class EnrollmentRepository {
                     duration: true,
                     videoUrl: true,
                     documentUrl: true,
+                    content: true,
                   },
                 },
               },

@@ -93,6 +93,7 @@ export const GetEnrollmentDetailResSchema = EnrollmentSchema.extend({
             position: true,
             videoUrl: true,
             documentUrl: true,
+            content: true,
           }),
         ),
       }),

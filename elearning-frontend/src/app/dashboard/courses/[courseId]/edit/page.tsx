@@ -19,7 +19,6 @@ type Params = Promise<{ courseId: string }>;
 export default async function EditCourse({ params }: { params: Params }) {
   const courseId = await params;
   const courseInfo = await getCourseById(courseId.courseId);
-  console.log(courseInfo);
   return (
     <div>
       <div className="flex items-center gap-4">

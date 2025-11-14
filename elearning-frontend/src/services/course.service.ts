@@ -38,6 +38,7 @@ export interface ILesson {
   position: number;
   videoUrl: string | null;
   documentUrl: string | null;
+  content: string | null;
 }
 
 export interface IChapter {
@@ -129,11 +130,25 @@ export interface UpdateLessonDto {
   position?: number;
   videoUrl?: string;
   documentUrl?: string;
+  content?: string;
 }
 
 export interface ReorderLessonsDto {
   chapterId: string;
   lessons: { id: string; position: number }[];
+}
+
+export interface GetLessionDetailDto extends ILesson {
+  chapter: {
+    id: string;
+    title: string;
+    courseId: string;
+    course: {
+      id: string;
+      title: string;
+      slug: string;
+    };
+  };
 }
 
 // Get All Courses with Pagination
@@ -241,6 +256,15 @@ export const reorderChapters = async (
 // ============= LESSON APIs =============
 export const createLesson = async (data: CreateLessonDto): Promise<ILesson> => {
   const response = await api.post<ILesson>(`${API_ENDPOINT.LESSONS}`, data);
+  return response.data;
+};
+
+export const getLessonById = async (
+  lessonId: string
+): Promise<GetLessionDetailDto> => {
+  const response = await api.get<GetLessionDetailDto>(
+    `${API_ENDPOINT.LESSONS}/${lessonId}`
+  );
   return response.data;
 };
 
