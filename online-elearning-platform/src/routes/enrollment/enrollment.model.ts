@@ -1,5 +1,6 @@
 import { CourseLevel, CourseStatus } from 'src/shared/constants/course.constant'
 import z from 'zod'
+import { LessonSchema } from '../lesson/lesson.model'
 
 // Enrollment Schema
 export const EnrollmentSchema = z.object({
@@ -86,11 +87,12 @@ export const GetEnrollmentDetailResSchema = EnrollmentSchema.extend({
         title: z.string(),
         position: z.number(),
         lessons: z.array(
-          z.object({
-            id: z.string(),
-            title: z.string(),
-            position: z.number(),
-            duration: z.number().nullable(),
+          LessonSchema.pick({
+            id: true,
+            title: true,
+            position: true,
+            videoUrl: true,
+            documentUrl: true,
           }),
         ),
       }),

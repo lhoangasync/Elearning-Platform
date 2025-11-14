@@ -180,6 +180,8 @@ export class EnrollmentRepository {
                     title: true,
                     position: true,
                     duration: true,
+                    videoUrl: true,
+                    documentUrl: true,
                   },
                 },
               },

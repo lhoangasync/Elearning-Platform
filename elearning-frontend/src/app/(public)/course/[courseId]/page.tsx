@@ -21,6 +21,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { EnrollmentStatusButton } from "./_components/EnrollmentStatusButton ";
 
 type Params = Promise<{ courseId: string }>;
 
@@ -28,6 +29,7 @@ export default async function CourseDetailPage({ params }: { params: Params }) {
   const { courseId } = await params;
   const course = await getCourseById(courseId);
 
+  /// Level color and label mapping
   const levelColors = {
     BEGINNER: "bg-green-500/10 text-green-600 border-green-500/20",
     INTERMEDIATE: "bg-blue-500/10 text-blue-600 border-blue-500/20",
@@ -157,9 +159,7 @@ export default async function CourseDetailPage({ params }: { params: Params }) {
 
               {/* Mobile Enroll Button */}
               <div className="lg:hidden pt-4">
-                <Button size="lg" className="w-full">
-                  Enroll Now
-                </Button>
+                <EnrollmentStatusButton courseId={course.id} />
               </div>
             </div>
 
@@ -184,9 +184,7 @@ export default async function CourseDetailPage({ params }: { params: Params }) {
                   )}
 
                   <div className="space-y-3">
-                    <Button size="lg" className="w-full">
-                      Enroll Now
-                    </Button>
+                    <EnrollmentStatusButton courseId={course.id} />
                     <Button size="lg" variant="outline" className="w-full">
                       Preview Course
                     </Button>
@@ -239,7 +237,7 @@ export default async function CourseDetailPage({ params }: { params: Params }) {
                   <div className="grid md:grid-cols-2 gap-3">
                     {course.whatYouWillLearn.map((item, index) => (
                       <div key={index} className="flex gap-3">
-                        <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                        <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
                         <span className="text-sm">{item}</span>
                       </div>
                     ))}
